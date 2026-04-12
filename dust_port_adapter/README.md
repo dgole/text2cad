@@ -37,18 +37,18 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 
 | Vertex | X | Y | Fillet | Notes |
 |--------|------|------|--------|-------|
-| A | 0 | 0 | 6.0 mm | Rounded corner |
-| B | 73 | 38 | 2.5 mm | |
-| C | 70 | 58 | 2.5 mm | |
-| D | 10 | 58 | 2.5 mm | |
+| A | 0 | 0 | 8.0 mm | Rounded corner |
+| B | 73.5 | 38 | 2.0 mm | |
+| C | 70 | 58 | 2.0 mm | |
+| D | 10 | 58 | 2.0 mm | |
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
-| `AB_BULGE` | 0.0 mm | Inward curvature (sagitta) of the A→B edge. 0 = straight; positive = bows inward. |
-| `WALL` | 2.5 mm | Frame wall thickness (added outward) |
+| `AB_BULGE` | 4.0 mm | Inward curvature (sagitta) of the A→B edge. 0 = straight; positive = bows inward. |
+| `WALL` | 4.0 mm | Frame wall thickness (added outward) |
 | `THICKNESS` | 2.0 mm | Plate extrusion height (Z) |
 
-**All vertex positions are rough estimates — need caliper measurements.**
+**Vertex positions based on initial measurements — iterating on fit.**
 
 ## Next steps
 

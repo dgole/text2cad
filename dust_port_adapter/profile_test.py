@@ -58,23 +58,23 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 # Vertices (x, y) of the INNER edge — the surface that sits against the rim.
 # Outer edge is computed by offsetting outward by WALL.
 AX, AY = 0.0, 0.0         # bottom-left (rounded corner)
-BX, BY = 73.0, 38.0       # bottom-right
+BX, BY = 73.5, 38.0       # bottom-right
 CX, CY = 70.0, 58.0       # top-right
 DX, DY = 10.0, 58.0       # top-left
 
 # Fillet radii at each corner
-FILLET_A = 6.0             # large rounded corner
-FILLET_B = 2.5             # small
-FILLET_C = 2.5             # small
-FILLET_D = 2.5             # small
+FILLET_A = 8.0             # large rounded corner
+FILLET_B = 2.0             # small
+FILLET_C = 2.0             # small
+FILLET_D = 2.0             # small
 
 # Edge curvature — inward bulge (sagitta) for the A→B edge.
 # 0 = perfectly straight.  Positive = bows inward (toward polygon interior).
 # This is the perpendicular distance from the chord midpoint to the arc apex.
-AB_BULGE = 2.0             # mm — slight inward bow on the A→B edge
+AB_BULGE = 4.0             # mm — slight inward bow on the A→B edge
 
 # Wall thickness for outline-only mode
-WALL = 2.5
+WALL = 4.0
 
 # Test plate thickness (just enough to be rigid for a fit check)
 THICKNESS = 2.0
