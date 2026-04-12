@@ -85,14 +85,6 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 
 **Vertex positions based on initial measurements — iterating on fit.**
 
-## Next steps
-
-1. ~~Print `profile_test.py` outline, check fit against saw rim~~
-2. Iterate on vertex positions and fillet radii until the inner edge matches
-3. Cut the dust port opening in the faceplate cap
-4. Design the hose connection (tube/funnel extending from the port opening)
-5. Add clip mechanism to hold the adapter onto the rim
-
 ## Usage
 
 ```bash
