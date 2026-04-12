@@ -19,8 +19,8 @@
     "faceplate": {
         "wall_height": 6.0,
         "cap_thickness": 2.0,
-        "screw_x": 12.0,
-        "screw_y": 56.0,
+        "screw_x": 16.0,
+        "screw_y": 52.0,
         "screw_diameter": 10.0
     }
 }
