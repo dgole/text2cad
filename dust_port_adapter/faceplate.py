@@ -31,6 +31,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -40,30 +41,41 @@ import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
 
 # Import geometry helpers from the profile test module
-from profile_test import (  # noqa: E402
-    _build_quad_solid,
-    _offset_vertices_inward,
-    AX, AY, BX, BY, CX, CY, DX, DY,
-    FILLET_A, FILLET_B, FILLET_C, FILLET_D,
-    AB_BULGE, WALL,
-)
+from profile_test import _build_quad_solid, _offset_vertices_inward  # noqa: E402
+
+# ---------------------------------------------------------------------------
+# Load config
+# ---------------------------------------------------------------------------
+
+_CONFIG_PATH = Path(__file__).parent / "config.json"
+with open(_CONFIG_PATH) as _f:
+    CFG = json.load(_f)
 
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 # ---------------------------------------------------------------------------
-# Parameters — all dimensions in mm.
+# Parameters from config — all dimensions in mm.
 # ---------------------------------------------------------------------------
 
-# How tall the walls are (how far they extend down to wrap around the rim)
-WALL_HEIGHT = 6.0
+AX, AY = CFG["vertices"]["A"]
+BX, BY = CFG["vertices"]["B"]
+CX, CY = CFG["vertices"]["C"]
+DX, DY = CFG["vertices"]["D"]
 
-# Thickness of the solid cap on top
-CAP_THICKNESS = 2.0
+FILLET_A = CFG["fillets"]["A"]
+FILLET_B = CFG["fillets"]["B"]
+FILLET_C = CFG["fillets"]["C"]
+FILLET_D = CFG["fillets"]["D"]
 
-# Screw hole — center position (same coordinate system as vertices) and diameter
-SCREW_X = 12.0
-SCREW_Y = 56.0
-SCREW_DIAMETER = 1.2
+AB_BULGE = CFG["ab_bulge"]
+WALL = CFG["wall"]
+
+_fp = CFG["faceplate"]
+WALL_HEIGHT = _fp["wall_height"]
+CAP_THICKNESS = _fp["cap_thickness"]
+SCREW_X = _fp["screw_x"]
+SCREW_Y = _fp["screw_y"]
+SCREW_DIAMETER = _fp["screw_diameter"]
 
 
 # ---------------------------------------------------------------------------

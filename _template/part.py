@@ -7,12 +7,13 @@ Description:
 
 Usage:
     python part.py plate
-    python part.py plate --port-width 45
+    python part.py plate --example-param 45
 """
 
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 from pathlib import Path
 
@@ -21,17 +22,24 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
 from cad.export import to_stl  # noqa: E402
 
+# ---------------------------------------------------------------------------
+# Load config — single source of truth for all parameters
+# ---------------------------------------------------------------------------
+
+_CONFIG_PATH = Path(__file__).parent / "config.json"
+with open(_CONFIG_PATH) as _f:
+    CFG = json.load(_f)
+
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 # ---------------------------------------------------------------------------
-# Parameters — all dimensions in mm.
+# Parameters from config — all dimensions in mm.
 # ---------------------------------------------------------------------------
 
-# <Define your parameters here as module-level constants.>
-# Example:
-# WIDTH = 40.0
-# HEIGHT = 30.0
-# WALL = 2.5
+# Pull values from CFG here, e.g.:
+# WIDTH = CFG["width"]
+# HEIGHT = CFG["height"]
+# WALL = CFG["wall"]
 
 
 # ---------------------------------------------------------------------------
@@ -63,6 +71,7 @@ def main():
     parser.add_argument("stage", choices=list(STAGES.keys()), help="Build stage to export.")
     parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
     # <Add --flags for your parameters here so they're overridable.>
+    # CLI flags override config values for one-off tweaks.
     args = parser.parse_args()
 
     builder = STAGES[args.stage]

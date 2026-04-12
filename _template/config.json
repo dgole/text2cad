@@ -1,0 +1,4 @@
+{
+    "_comment": "All dimensions in mm. This is the single source of truth for parameters.",
+    "example_param": 10.0
+}

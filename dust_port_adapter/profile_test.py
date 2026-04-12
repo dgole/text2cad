@@ -22,11 +22,6 @@ Corner layout (looking at the port from outside the saw):
   C = top-right     (~95°, slight fillet)
   D = top-left      (~95°, slight fillet)
 
-Parameterization is by vertex coordinates directly — measure the 4
-corner positions relative to any convenient origin (e.g. bottom-left = 0,0).
-This is simpler and more accurate than angles + side lengths when you
-have calipers and a ruler on the real part.
-
 Usage:
     python profile_test.py
     python profile_test.py --thickness 3
@@ -35,6 +30,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import json
 import math
 import sys
 from pathlib import Path
@@ -45,39 +41,33 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
 
+# ---------------------------------------------------------------------------
+# Load config
+# ---------------------------------------------------------------------------
+
+_CONFIG_PATH = Path(__file__).parent / "config.json"
+with open(_CONFIG_PATH) as _f:
+    CFG = json.load(_f)
+
 OUTPUT_DIR = Path(__file__).parent / "output"
 
 # ---------------------------------------------------------------------------
-# Parameters — all dimensions in mm.
-#
-# Vertex positions: measure the outer rim of the flange.
-# Origin at A (bottom-left), X to the right, Y up.
-# ALL VALUES ARE PLACEHOLDERS — measure your saw!
+# Parameters from config — all dimensions in mm.
 # ---------------------------------------------------------------------------
 
-# Vertices (x, y) of the INNER edge — the surface that sits against the rim.
-# Outer edge is computed by offsetting outward by WALL.
-AX, AY = 0.0, 0.0         # bottom-left (rounded corner)
-BX, BY = 74.0, 38.0       # bottom-right
-CX, CY = 70.5, 58.0       # top-right
-DX, DY = 10.0, 58.0       # top-left
+AX, AY = CFG["vertices"]["A"]
+BX, BY = CFG["vertices"]["B"]
+CX, CY = CFG["vertices"]["C"]
+DX, DY = CFG["vertices"]["D"]
 
-# Fillet radii at each corner
-FILLET_A = 7.5             # large rounded corner
-FILLET_B = 2.0             # small
-FILLET_C = 2.0             # small
-FILLET_D = 2.0             # small
+FILLET_A = CFG["fillets"]["A"]
+FILLET_B = CFG["fillets"]["B"]
+FILLET_C = CFG["fillets"]["C"]
+FILLET_D = CFG["fillets"]["D"]
 
-# Edge curvature — inward bulge (sagitta) for the A→B edge.
-# 0 = perfectly straight.  Positive = bows inward (toward polygon interior).
-# This is the perpendicular distance from the chord midpoint to the arc apex.
-AB_BULGE = 4.0             # mm — slight inward bow on the A→B edge
-
-# Wall thickness for outline-only mode
-WALL = 4.0
-
-# Test plate thickness (just enough to be rigid for a fit check)
-THICKNESS = 2.0
+AB_BULGE = CFG["ab_bulge"]
+WALL = CFG["wall"]
+THICKNESS = CFG["profile_test"]["thickness"]
 
 
 # ---------------------------------------------------------------------------

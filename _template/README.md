@@ -16,6 +16,9 @@
 
 ## Parameters
 
-| Name | Value | Description |
-|------|-------|-------------|
-| ... | ... mm | ... |
+All parameters live in [`config.json`](config.json) — the single source of truth.
+CLI flags override config values for one-off tweaks.
+
+| Key | Description |
+|-----|-------------|
+| ... | ... |

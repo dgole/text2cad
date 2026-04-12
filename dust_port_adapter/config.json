@@ -1,0 +1,26 @@
+{
+    "vertices": {
+        "A": [0.0, 0.0],
+        "B": [74.0, 38.0],
+        "C": [70.5, 58.0],
+        "D": [10.0, 58.0]
+    },
+    "fillets": {
+        "A": 7.5,
+        "B": 2.0,
+        "C": 2.0,
+        "D": 2.0
+    },
+    "ab_bulge": 4.0,
+    "wall": 4.0,
+    "profile_test": {
+        "thickness": 2.0
+    },
+    "faceplate": {
+        "wall_height": 6.0,
+        "cap_thickness": 2.0,
+        "screw_x": 12.0,
+        "screw_y": 56.0,
+        "screw_diameter": 12.0
+    }
+}

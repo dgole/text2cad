@@ -32,8 +32,8 @@ Side view (cross section):
     └───┘                 └───┘
 ```
 
-`faceplate.py` imports geometry helpers and default vertex coordinates from
-`profile_test.py` — they share a single source of truth for the rim shape.
+`faceplate.py` imports geometry helpers from `profile_test.py` — they share a
+single source of truth for the rim shape via `config.json`.
 
 ## Reference
 
@@ -41,7 +41,12 @@ Side view (cross section):
 - `reference/reference_part_for_inspo_real.webp` — photo of an existing dust port adapter for a smaller saw (design inspiration)
 - `reference/reference_part_for_inspo_rendered.webp` — rendered view of the same inspiration part
 
-## Rim profile parameterization
+## Parameters
+
+All parameters live in [`config.json`](config.json) — the single source of truth.
+CLI flags override config values for one-off tweaks.
+
+### Rim profile
 
 The rim shape is an irregular quadrilateral with 4 mostly-straight sides.
 Corner A (bottom-left) has significant rounding; the other 3 are near-90°.
@@ -55,35 +60,28 @@ Corner A (bottom-left) has significant rounding; the other 3 are near-90°.
 
 Vertices define the **inner edge** (against the rim). All values in mm.
 
-| Vertex | X | Y | Fillet | Notes |
-|--------|------|------|--------|-------|
-| A | 0 | 0 | 7.5 mm | Rounded corner |
-| B | 74 | 38 | 2.0 mm | |
-| C | 70.5 | 58 | 2.0 mm | |
-| D | 10 | 58 | 2.0 mm | |
+| Config key | Description |
+|------------|-------------|
+| `vertices.A` … `vertices.D` | Corner positions `[x, y]` |
+| `fillets.A` … `fillets.D` | Fillet radius at each corner |
+| `ab_bulge` | Inward curvature (sagitta) of the A→B edge. 0 = straight. |
+| `wall` | Wall thickness (added outward from inner edge) |
 
-### Profile parameters (shared)
+### Profile test
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `AB_BULGE` | 4.0 mm | Inward curvature (sagitta) of the A→B edge. 0 = straight; positive = bows inward. |
-| `WALL` | 4.0 mm | Wall thickness (added outward from inner edge) |
+| Config key | Description |
+|------------|-------------|
+| `profile_test.thickness` | Plate extrusion height (Z) for the test piece |
 
-### Profile test parameters
+### Faceplate
 
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `THICKNESS` | 2.0 mm | Plate extrusion height (Z) for the test piece |
-
-### Faceplate parameters
-
-| Parameter | Default | Description |
-|-----------|---------|-------------|
-| `WALL_HEIGHT` | 6.0 mm | Height of the walls that wrap around the rim |
-| `CAP_THICKNESS` | 2.0 mm | Thickness of the solid cap |
-| `SCREW_X` | 12.0 mm | Screw hole center X coordinate |
-| `SCREW_Y` | 56.0 mm | Screw hole center Y coordinate |
-| `SCREW_DIAMETER` | 1.2 mm | Screw hole diameter |
+| Config key | Description |
+|------------|-------------|
+| `faceplate.wall_height` | Height of the walls that wrap around the rim |
+| `faceplate.cap_thickness` | Thickness of the solid cap |
+| `faceplate.screw_x` | Screw hole center X coordinate |
+| `faceplate.screw_y` | Screw hole center Y coordinate |
+| `faceplate.screw_diameter` | Screw hole diameter |
 
 **Vertex positions based on initial measurements — iterating on fit.**
 

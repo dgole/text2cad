@@ -25,12 +25,14 @@ text2cad/
 │   └── export.py           to_stl() — writes Workplane → STL file
 │
 ├── _template/              Skeleton for new part projects — copy, don't edit
+│   ├── config.json         Parameter defaults (single source of truth)
 │   ├── part.py             Annotated starter script
 │   ├── README.md           Documentation template
 │   ├── reference/          For photos
 │   └── output/             For generated STLs
 │
 ├── <part_name>/            One directory per part (self-contained)
+│   ├── config.json         Parameter defaults (single source of truth)
 │   ├── part.py             Bespoke parametric script for this part
 │   ├── README.md           Part-specific docs, measurements, stage table
 │   ├── reference/          Reference photos from the human
@@ -63,13 +65,20 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 ```
 This lets it import from `cad/` regardless of working directory.
 
-### Parameters as module constants
-Define all dimensions as named constants at the top of the file with comments.
-These are the knobs the human will want to tweak:
+### Parameters via config.json
+Each part directory has a `config.json` — the single source of truth for all
+dimensions. Scripts load it at startup and expose module-level constants:
 ```python
-PORT_WIDTH = 42.0        # mm — wider dimension of port opening
-PORT_HEIGHT = 28.0       # mm — shorter dimension
+_CONFIG_PATH = Path(__file__).parent / "config.json"
+with open(_CONFIG_PATH) as _f:
+    CFG = json.load(_f)
+
+PORT_WIDTH = CFG["port_width"]     # mm
+PORT_HEIGHT = CFG["port_height"]   # mm
 ```
+When a parameter changes, edit `config.json` once — all scripts pick it up.
+CLI flags still override config values for one-off tweaks.
+The README documents what each key *means* but does not duplicate the values.
 
 ### Staged build functions
 Design parts in testable stages — each stage is a function that returns a
@@ -144,8 +153,8 @@ reusable across parts, put it here.
    (clips, mounting, full geometry). Each stage is a separate print-and-test
    cycle.
 
-5. **Parameter tweaks:** When the human says "it's 2mm too wide", update the
-   constant and regenerate. The script is the single source of truth.
+5. **Parameter tweaks:** When the human says "it's 2mm too wide", update
+   `config.json` and regenerate. The config file is the single source of truth.
 
 ## cadquery tips
 
