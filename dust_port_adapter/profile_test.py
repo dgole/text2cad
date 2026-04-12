@@ -58,12 +58,12 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 # Vertices (x, y) of the INNER edge — the surface that sits against the rim.
 # Outer edge is computed by offsetting outward by WALL.
 AX, AY = 0.0, 0.0         # bottom-left (rounded corner)
-BX, BY = 63.0, 30.0       # bottom-right
-CX, CY = 60.0, 50.0       # top-right
-DX, DY = 10.0, 50.0       # top-left
+BX, BY = 75.0, 40.0       # bottom-right
+CX, CY = 72.0, 60.0       # top-right
+DX, DY = 10.0, 60.0       # top-left
 
 # Fillet radii at each corner
-FILLET_A = 8.0             # large rounded corner
+FILLET_A = 6.0             # large rounded corner
 FILLET_B = 2.5             # small
 FILLET_C = 2.5             # small
 FILLET_D = 2.5             # small

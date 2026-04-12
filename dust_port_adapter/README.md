@@ -42,10 +42,10 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 
 | Vertex | X | Y | Fillet | Notes |
 |--------|------|------|--------|-------|
-| A | 0 | 0 | 8.0 mm | Rounded corner |
-| B | 63 | 30 | 2.5 mm | |
-| C | 60 | 50 | 2.5 mm | |
-| D | 10 | 50 | 2.5 mm | |
+| A | 0 | 0 | 6.0 mm | Rounded corner |
+| B | 75 | 40 | 2.5 mm | |
+| C | 72 | 60 | 2.5 mm | |
+| D | 10 | 60 | 2.5 mm | |
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
