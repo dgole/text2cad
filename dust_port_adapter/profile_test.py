@@ -71,7 +71,7 @@ FILLET_D = 2.5             # small
 # Edge curvature — inward bulge (sagitta) for the A→B edge.
 # 0 = perfectly straight.  Positive = bows inward (toward polygon interior).
 # This is the perpendicular distance from the chord midpoint to the arc apex.
-AB_BULGE = 0.0             # mm — start at 0, increase after test prints
+AB_BULGE = 2.0             # mm — slight inward bow on the A→B edge
 
 # Wall thickness for outline-only mode
 WALL = 2.5
