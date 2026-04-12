@@ -2,31 +2,70 @@
 
 ## Description
 
-Clip-on adapter for a circular saw dust exhaust port. Clips onto the rectangular
-port rim, extends an arm to a screw hole for anchoring, and (eventually) turns
-90° to connect to a dust collection hose.
+Clip-on adapter for a Makita circular saw dust exhaust port. The port has an
+irregular quadrilateral flange/rim — not a simple rectangle. The adapter will
+eventually clip onto this rim and connect to a dust collection hose.
+
+## Status
+
+**Early stage — working on the 2D profile of the outer rim flange.**
+
+We have two scripts:
+- `profile_test.py` — **active work.** Generates a thin outline matching the
+  outer rim of the flange. This is the test piece to print and hold against
+  the saw to verify the shape. Vertex coordinates define the inner edge
+  (the surface that sits against the rim); the outer edge is offset outward
+  by the wall thickness.
+- `part.py` — original scaffolding with rectangular collar/mounting stages.
+  **Not currently in use** — will be replaced or reworked once the 2D profile
+  is nailed down and we move to the full 3D adapter.
 
 ## Reference
 
-- `reference/saw_dust_port_exit.jpg` — photo of the dust port
+- `reference/saw_dust_port_exit_measurement_image.jpg` — photo of the dust port with measurement
+- `reference/reference_part_for_inspo_real.webp` — photo of an existing dust port adapter for a smaller saw (design inspiration)
+- `reference/reference_part_for_inspo_rendered.webp` — rendered view of the same inspiration part
 
-## Build stages
+## Current profile parameterization
 
-| Stage | What it produces | What to check |
-|-------|-----------------|---------------|
-| `plate` | Flat frame matching port outline | Does the opening line up with the port? |
-| `collar` | Frame + clip lip behind it | Does it snap onto the rim? |
-| `mounting` | Collar + arm with screw hole | Does the screw hole align? |
+The rim shape is an irregular quadrilateral with 4 mostly-straight sides.
+Corner A (bottom-left) has significant rounding; the other 3 are near-90°.
 
-## Parameters
+```
+        D -------- C
+        |          |
+         \         |
+          A ------ B
+```
 
-| Name | Default | Description |
-|------|---------|-------------|
-| `PORT_WIDTH` | 42.0 mm | Width of port opening (PLACEHOLDER — measure!) |
-| `PORT_HEIGHT` | 28.0 mm | Height of port opening (PLACEHOLDER — measure!) |
-| `PORT_CORNER_RADIUS` | 3.0 mm | Corner fillet radius |
-| `WALL` | 2.5 mm | Adapter wall thickness |
-| `RIM_THICKNESS` | 2.0 mm | How far the port rim protrudes |
-| `RIM_DEPTH` | 3.0 mm | Axial depth of the rim |
-| `SCREW_HOLE_DIA` | 4.5 mm | Screw clearance hole diameter |
-| `SCREW_OFFSET_Y` | 30.0 mm | Distance from port center to screw hole |
+Vertices define the **inner edge** (against the rim). All values in mm.
+
+| Vertex | X | Y | Fillet | Notes |
+|--------|------|------|--------|-------|
+| A | 0 | 0 | 8.0 mm | Rounded corner |
+| B | 65 | 40 | 1.5 mm | |
+| C | 65 | 60 | 1.5 mm | |
+| D | 10 | 60 | 1.5 mm | |
+
+| Parameter | Default | Description |
+|-----------|---------|-------------|
+| `WALL` | 2.5 mm | Frame wall thickness (added outward) |
+| `THICKNESS` | 2.0 mm | Plate extrusion height (Z) |
+
+**All vertex positions are rough estimates — need caliper measurements.**
+
+## Next steps
+
+1. Print `profile_test.py` outline, check fit against saw rim
+2. Iterate on vertex positions and fillet radius until the inner edge matches
+3. Study inspiration part references for the 3D adapter design (hose connection, clip mechanism)
+4. Build the full 3D adapter
+
+## Usage
+
+```bash
+cd dust_port_adapter
+python profile_test.py
+python profile_test.py --wall 3 --fillet-a 10
+python profile_test.py --bx 68 --by 42
+```

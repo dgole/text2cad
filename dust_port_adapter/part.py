@@ -21,6 +21,7 @@ Usage:
 from __future__ import annotations
 
 import argparse
+import inspect
 import sys
 from pathlib import Path
 
@@ -193,16 +194,35 @@ def main():
     parser.add_argument("--corner-radius", type=float, default=PORT_CORNER_RADIUS)
     parser.add_argument("--wall", type=float, default=WALL)
     parser.add_argument("--plate-thickness", type=float, default=PLATE_THICKNESS)
+    parser.add_argument("--rim-thickness", type=float, default=RIM_THICKNESS)
+    parser.add_argument("--rim-depth", type=float, default=RIM_DEPTH)
+    parser.add_argument("--screw-dia", type=float, default=SCREW_HOLE_DIA)
+    parser.add_argument("--screw-x", type=float, default=SCREW_OFFSET_X)
+    parser.add_argument("--screw-y", type=float, default=SCREW_OFFSET_Y)
 
     args = parser.parse_args()
 
-    builder = STAGES[args.stage]
-    body = builder(
+    # Build a kwargs dict with all dimensions; each stage function accepts
+    # only the subset it cares about via its signature defaults.
+    kwargs = dict(
         port_width=args.port_width,
         port_height=args.port_height,
         corner_radius=args.corner_radius,
         wall=args.wall,
+        thickness=args.plate_thickness,
+        plate_thickness=args.plate_thickness,
+        rim_thickness=args.rim_thickness,
+        rim_depth=args.rim_depth,
+        screw_dia=args.screw_dia,
+        screw_x=args.screw_x,
+        screw_y=args.screw_y,
     )
+
+    # Filter kwargs to only those the builder accepts
+    builder = STAGES[args.stage]
+    sig = inspect.signature(builder)
+    filtered = {k: v for k, v in kwargs.items() if k in sig.parameters}
+    body = builder(**filtered)
 
     name = f"dust_port_{args.stage}"
     to_stl(body, name, output_dir=args.output_dir)
