@@ -68,6 +68,11 @@ FILLET_B = 2.5             # small
 FILLET_C = 2.5             # small
 FILLET_D = 2.5             # small
 
+# Edge curvature — inward bulge (sagitta) for the A→B edge.
+# 0 = perfectly straight.  Positive = bows inward (toward polygon interior).
+# This is the perpendicular distance from the chord midpoint to the arc apex.
+AB_BULGE = 0.0             # mm — start at 0, increase after test prints
+
 # Wall thickness for outline-only mode
 WALL = 2.5
 
@@ -187,12 +192,17 @@ def _build_quad_solid(
     verts: List[Tuple[float, float]],
     fillets: List[float],
     thickness: float,
+    edge_bulges: List[float] = None,
 ) -> cq.Workplane:
     """
     Build a thin extruded solid from a filleted quadrilateral.
     verts: 4 (x,y) vertices in order.  fillets: radius per corner.
+    edge_bulges: per-edge sagitta values (inward bulge).  edge_bulges[i] is
+    for the edge from vertex i to vertex i+1.  0 or None = straight line.
     """
     n = len(verts)
+    if edge_bulges is None:
+        edge_bulges = [0.0] * n
 
     corners = []
     for i in range(n):
@@ -239,8 +249,37 @@ def _build_quad_solid(
 
             wp = wp.threePointArc(arc_mid, c["t_end"])
 
+        # End-point of the straight (or bulged) segment to the next corner
         target = c_next["t_start"] if c_next["fillet"] else c_next["point"]
-        wp = wp.lineTo(target[0], target[1])
+
+        bulge = edge_bulges[i]
+        if abs(bulge) > 1e-6:
+            # Current pen position = c["t_end"] if filleted, else c["point"]
+            pen = c["t_end"] if c["fillet"] else c["point"]
+
+            # Chord midpoint
+            cmx = (pen[0] + target[0]) / 2.0
+            cmy = (pen[1] + target[1]) / 2.0
+
+            # Edge direction vector (pen → target)
+            edx = target[0] - pen[0]
+            edy = target[1] - pen[1]
+            edge_len = math.sqrt(edx**2 + edy**2)
+
+            if edge_len > 1e-9:
+                # Inward normal: for our CCW-ish winding the polygon interior
+                # is to the LEFT of the edge direction, so the inward-pointing
+                # perpendicular is (-edy, edx) normalised.
+                inx = -edy / edge_len
+                iny =  edx / edge_len
+
+                # Arc midpoint displaced inward by the bulge sagitta
+                arc_edge_mid = (cmx + inx * bulge, cmy + iny * bulge)
+                wp = wp.threePointArc(arc_edge_mid, target)
+            else:
+                wp = wp.lineTo(target[0], target[1])
+        else:
+            wp = wp.lineTo(target[0], target[1])
 
     return wp.close().extrude(thickness)
 
@@ -254,6 +293,7 @@ def build_profile_plate(
     fillet_b: float = FILLET_B,
     fillet_c: float = FILLET_C,
     fillet_d: float = FILLET_D,
+    ab_bulge: float = AB_BULGE,
     wall: float = WALL,
     thickness: float = THICKNESS,
 ) -> cq.Workplane:
@@ -265,12 +305,19 @@ def build_profile_plate(
     inner_verts = [(ax, ay), (bx, by), (cx, cy), (dx, dy)]
     inner_fillets = [fillet_a, fillet_b, fillet_c, fillet_d]
 
+    # Edge bulges: index 0 = A→B edge, 1 = B→C, 2 = C→D, 3 = D→A
+    inner_bulges = [ab_bulge, 0.0, 0.0, 0.0]
+
     # Offset outward (negative inward = outward)
     outer_verts = _offset_vertices_inward(inner_verts, -wall)
     outer_fillets = [f + wall for f in inner_fillets]
+    # Outer edge uses the SAME sagitta as inner — both bow inward by the same
+    # amount from their own chord.  The wall thickness is already set by the
+    # vertex offset, so matching the sagitta keeps the wall uniform.
+    outer_bulges = [ab_bulge, 0.0, 0.0, 0.0]
 
-    outer_solid = _build_quad_solid(outer_verts, outer_fillets, thickness)
-    inner_solid = _build_quad_solid(inner_verts, inner_fillets, thickness)
+    outer_solid = _build_quad_solid(outer_verts, outer_fillets, thickness, outer_bulges)
+    inner_solid = _build_quad_solid(inner_verts, inner_fillets, thickness, inner_bulges)
 
     return outer_solid.cut(inner_solid)
 
@@ -302,6 +349,10 @@ def main():
     parser.add_argument("--fillet-c", type=float, default=FILLET_C)
     parser.add_argument("--fillet-d", type=float, default=FILLET_D)
 
+    # Edge curvature
+    parser.add_argument("--ab-bulge", type=float, default=AB_BULGE,
+                        help="Inward bulge (sagitta, mm) for the A→B edge. 0=straight.")
+
     parser.add_argument("--wall", type=float, default=WALL)
     parser.add_argument("--thickness", type=float, default=THICKNESS)
 
@@ -316,6 +367,7 @@ def main():
         fillet_b=args.fillet_b,
         fillet_c=args.fillet_c,
         fillet_d=args.fillet_d,
+        ab_bulge=args.ab_bulge,
         wall=args.wall,
         thickness=args.thickness,
     )

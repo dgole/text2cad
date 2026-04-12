@@ -49,6 +49,7 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 
 | Parameter | Default | Description |
 |-----------|---------|-------------|
+| `AB_BULGE` | 0.0 mm | Inward curvature (sagitta) of the A→B edge. 0 = straight; positive = bows inward. |
 | `WALL` | 2.5 mm | Frame wall thickness (added outward) |
 | `THICKNESS` | 2.0 mm | Plate extrusion height (Z) |
 
@@ -68,4 +69,5 @@ cd dust_port_adapter
 python profile_test.py
 python profile_test.py --wall 3 --fillet-a 10
 python profile_test.py --bx 68 --by 42
+python profile_test.py --ab-bulge 3
 ```
