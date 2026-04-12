@@ -10,15 +10,10 @@ eventually clip onto this rim and connect to a dust collection hose.
 
 **Early stage — working on the 2D profile of the outer rim flange.**
 
-We have two scripts:
-- `profile_test.py` — **active work.** Generates a thin outline matching the
-  outer rim of the flange. This is the test piece to print and hold against
-  the saw to verify the shape. Vertex coordinates define the inner edge
-  (the surface that sits against the rim); the outer edge is offset outward
-  by the wall thickness.
-- `part.py` — original scaffolding with rectangular collar/mounting stages.
-  **Not currently in use** — will be replaced or reworked once the 2D profile
-  is nailed down and we move to the full 3D adapter.
+- `profile_test.py` — Generates a thin outline matching the outer rim of the
+  flange. This is the test piece to print and hold against the saw to verify
+  the shape. Vertex coordinates define the inner edge (the surface that sits
+  against the rim); the outer edge is offset outward by the wall thickness.
 
 ## Reference
 
@@ -43,7 +38,7 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 | Vertex | X | Y | Fillet | Notes |
 |--------|------|------|--------|-------|
 | A | 0 | 0 | 6.0 mm | Rounded corner |
-| B | 73 | 39 | 2.5 mm | |
+| B | 73 | 38 | 2.5 mm | |
 | C | 70 | 58 | 2.5 mm | |
 | D | 10 | 58 | 2.5 mm | |
 

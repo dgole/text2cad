@@ -58,7 +58,7 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 # Vertices (x, y) of the INNER edge — the surface that sits against the rim.
 # Outer edge is computed by offsetting outward by WALL.
 AX, AY = 0.0, 0.0         # bottom-left (rounded corner)
-BX, BY = 73.0, 39.0       # bottom-right
+BX, BY = 73.0, 38.0       # bottom-right
 CX, CY = 70.0, 58.0       # top-right
 DX, DY = 10.0, 58.0       # top-left
 
