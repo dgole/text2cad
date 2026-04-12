@@ -158,6 +158,10 @@ reusable across parts, put it here.
 - When in doubt, test your script by running it and checking that it produces
   a valid STL before telling the human it's ready.
 
+## STL Viewer
+
+Run `python viewer/server.py` and open http://localhost:8321 to visually inspect generated STL files in a 3D viewport.
+
 ## Git
 
 Commit regularly. STL files are gitignored. Reference images are tracked.

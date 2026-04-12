@@ -1,0 +1,266 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<title>STL Viewer</title>
+<style>
+  :root {
+    --bg: #1e1e2e;
+    --surface: #282840;
+    --border: #3a3a5c;
+    --text: #cdd6f4;
+    --accent: #89b4fa;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: "Inter", system-ui, -apple-system, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    height: 100vh;
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  /* ---- toolbar ---- */
+  #toolbar {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    padding: 10px 16px;
+    background: var(--surface);
+    border-bottom: 1px solid var(--border);
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  #toolbar label {
+    font-size: 13px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: .05em;
+    color: var(--accent);
+  }
+  #toolbar select {
+    background: var(--bg);
+    color: var(--text);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 10px;
+    font-size: 14px;
+    min-width: 180px;
+    cursor: pointer;
+  }
+  #toolbar select:focus { outline: 2px solid var(--accent); }
+  #status {
+    margin-left: auto;
+    font-size: 12px;
+    opacity: .6;
+  }
+
+  /* ---- canvas ---- */
+  #viewer {
+    flex: 1;
+    position: relative;
+  }
+  canvas { display: block; }
+
+  /* ---- empty state ---- */
+  #empty {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 18px;
+    opacity: .35;
+    pointer-events: none;
+  }
+</style>
+</head>
+<body>
+
+<div id="toolbar">
+  <label for="partSelect">Project</label>
+  <select id="partSelect"><option value="">…</option></select>
+
+  <label for="stlSelect">STL</label>
+  <select id="stlSelect"><option value="">…</option></select>
+
+  <span id="status"></span>
+</div>
+
+<div id="viewer">
+  <div id="empty">← Pick a project &amp; STL to view</div>
+</div>
+
+<!-- Three.js from CDN (r162) -->
+<script type="importmap">
+{
+  "imports": {
+    "three": "https://cdn.jsdelivr.net/npm/three@0.162.0/build/three.module.js",
+    "three/addons/": "https://cdn.jsdelivr.net/npm/three@0.162.0/examples/jsm/"
+  }
+}
+</script>
+
+<script type="module">
+import * as THREE from "three";
+import { OrbitControls } from "three/addons/controls/OrbitControls.js";
+import { STLLoader } from "three/addons/loaders/STLLoader.js";
+
+// ---- elements ----
+const partSelect = document.getElementById("partSelect");
+const stlSelect  = document.getElementById("stlSelect");
+const statusEl   = document.getElementById("status");
+const viewerEl   = document.getElementById("viewer");
+const emptyEl    = document.getElementById("empty");
+
+// ---- three.js setup ----
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x1e1e2e);
+viewerEl.appendChild(renderer.domElement);
+
+const scene  = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(45, 1, 0.1, 10000);
+camera.position.set(0, -150, 100);
+
+const controls = new OrbitControls(camera, renderer.domElement);
+controls.enableDamping = true;
+controls.dampingFactor = 0.12;
+
+// lights
+scene.add(new THREE.AmbientLight(0xffffff, 0.6));
+const dirLight = new THREE.DirectionalLight(0xffffff, 0.9);
+dirLight.position.set(50, -80, 120);
+scene.add(dirLight);
+const dirLight2 = new THREE.DirectionalLight(0xffffff, 0.4);
+dirLight2.position.set(-60, 60, 80);
+scene.add(dirLight2);
+
+// grid helper (subtle)
+const grid = new THREE.GridHelper(200, 20, 0x3a3a5c, 0x2a2a44);
+grid.rotation.x = Math.PI / 2;          // XY plane
+scene.add(grid);
+
+let currentMesh = null;
+
+function resize() {
+  const w = viewerEl.clientWidth;
+  const h = viewerEl.clientHeight;
+  renderer.setSize(w, h);
+  camera.aspect = w / h;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener("resize", resize);
+resize();
+
+(function animate() {
+  requestAnimationFrame(animate);
+  controls.update();
+  renderer.render(scene, camera);
+})();
+
+// ---- data ----
+let partsData = {};
+
+async function fetchParts() {
+  const res = await fetch("/api/parts");
+  partsData = await res.json();
+  partSelect.innerHTML = '<option value="">— select project —</option>';
+  for (const name of Object.keys(partsData)) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name;
+    partSelect.appendChild(opt);
+  }
+}
+
+function populateStls(projectName) {
+  const stls = partsData[projectName] || [];
+  stlSelect.innerHTML = '<option value="">— select STL —</option>';
+  for (const name of stls) {
+    const opt = document.createElement("option");
+    opt.value = name;
+    opt.textContent = name.replace(/\.stl$/i, "");
+    stlSelect.appendChild(opt);
+  }
+  // auto-select if only one
+  if (stls.length === 1) {
+    stlSelect.value = stls[0];
+    loadStl(projectName, stls[0]);
+  }
+}
+
+function loadStl(project, file) {
+  if (!project || !file) return;
+  emptyEl.style.display = "none";
+  statusEl.textContent = "Loading…";
+
+  const url = `/${project}/output/${file}`;
+  new STLLoader().load(
+    url,
+    (geometry) => {
+      // remove old mesh
+      if (currentMesh) {
+        scene.remove(currentMesh);
+        currentMesh.geometry.dispose();
+        currentMesh.material.dispose();
+      }
+
+      geometry.computeVertexNormals();
+
+      const mat = new THREE.MeshStandardMaterial({
+        color: 0x89b4fa,
+        metalness: 0.15,
+        roughness: 0.55,
+        flatShading: false,
+      });
+      const mesh = new THREE.Mesh(geometry, mat);
+      scene.add(mesh);
+      currentMesh = mesh;
+
+      // center & fit camera
+      const box = new THREE.Box3().setFromObject(mesh);
+      const center = box.getCenter(new THREE.Vector3());
+      const size   = box.getSize(new THREE.Vector3());
+      const maxDim = Math.max(size.x, size.y, size.z);
+
+      controls.target.copy(center);
+      camera.position.set(
+        center.x + maxDim * 0.8,
+        center.y - maxDim * 1.2,
+        center.z + maxDim * 0.8
+      );
+      camera.lookAt(center);
+      controls.update();
+
+      // scale grid to part
+      grid.scale.setScalar(Math.max(1, maxDim / 200 * 2));
+      grid.position.set(center.x, center.y, box.min.z);
+
+      const tris = (geometry.index ? geometry.index.count / 3 : geometry.attributes.position.count / 3);
+      statusEl.textContent = `${Math.round(tris).toLocaleString()} triangles  ·  ${size.x.toFixed(1)} × ${size.y.toFixed(1)} × ${size.z.toFixed(1)} mm`;
+    },
+    undefined,
+    (err) => {
+      statusEl.textContent = "Error loading STL";
+      console.error(err);
+    }
+  );
+}
+
+// ---- events ----
+partSelect.addEventListener("change", () => {
+  populateStls(partSelect.value);
+});
+stlSelect.addEventListener("change", () => {
+  loadStl(partSelect.value, stlSelect.value);
+});
+
+// ---- init ----
+fetchParts();
+</script>
+</body>
+</html>
