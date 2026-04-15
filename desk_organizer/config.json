@@ -10,21 +10,21 @@
     },
 
     "remote_slots": {
-        "count": 3,
+        "count": 4,
         "width": 30,
-        "depth": 55,
+        "depth": 80,
         "pocket_depth": 80,
         "spacing": 6,
         "fillet": 3.0,
-        "offset_x": -20
+        "offset_x": -13
     },
 
     "pen_slots": {
-        "count": 3,
+        "count": 4,
         "diameter": 16,
         "pocket_depth": 80,
-        "spacing": 22,
-        "offset_x": 55
+        "spacing": 20,
+        "offset_x": 70
     },
 
     "split": {

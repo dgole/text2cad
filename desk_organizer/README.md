@@ -5,8 +5,8 @@
 A minimalist desktop / nightstand / side-table organizer. The overall form
 is a solid rectangular prism with pockets cut into it:
 
-- **3 TV remote slots** — rectangular pockets cut from the top, grouped on the left side
-- **3 pen slots** — circular holes cut from the top, grouped on the right side
+- **4 TV remote slots** — rectangular pockets cut from the top, grouped on the left side
+- **4 pen slots** — circular holes cut from the top, grouped on the right side
 - **2 phone slots** — thin slots accessible from the front face (+X side) at the bottom
   (bottom slot is taller than the top slot)
 
@@ -21,19 +21,19 @@ alignment pins (dowel joint):
   holes on both halves during assembly.
 
 ```
-Front view (+Y face):      Top view:                         Side view (+X face):
+Front view (+Y face):      Top view:                              Side view (+X face):
 
-┌─────────────────┐       ┌──────────────────────────┐      ┌──────────┐
-│                 │       │ ┌────┐┌────┐┌────┐  ○    │      │          │
-│                 │       │ │    ││    ││    │  ○    │      │          │
-│                 │       │ │rm1 ││rm2 ││rm3 │  ○    │      │          │
-│   TOP HALF      │       │ │    ││    ││    │ pens  │      │ TOP HALF │
-│                 │       │ └────┘└────┘└────┘       │      │          │
-│- - - - - - - - -│ split │- - - - - - - - - - - - - │      │- -pins- -│ split
-│   BOTTOM HALF   │       │  ●                    ●  │      │          │
-│                 │       │                          │      │──────────│ ← phone 2
-│                 │       │  ●                    ●  │      │══════════│ ← phone 1
-└─────────────────┘       └──────────────────────────┘      └──────────┘
+┌─────────────────┐       ┌─────────────────────────────────┐   ┌──────────┐
+│                 │       │ ┌────┐┌────┐┌────┐┌────┐  ○    │   │          │
+│                 │       │ │    ││    ││    ││    │  ○    │   │          │
+│                 │       │ │rm1 ││rm2 ││rm3 ││rm4 │  ○    │   │          │
+│   TOP HALF      │       │ │    ││    ││    ││    │  ○    │   │ TOP HALF │
+│                 │       │ └────┘└────┘└────┘└────┘ pens  │   │          │
+│- - - - - - - - -│ split │- - - - - - - - - - - - - - - - │   │- -pins- -│ split
+│   BOTTOM HALF   │       │  ●                          ●  │   │          │
+│                 │       │                                │   │──────────│ ← phone 2
+│                 │       │  ●                          ●  │   │══════════│ ← phone 1
+└─────────────────┘       └─────────────────────────────────┘   └──────────┘
 
 Phone slots open on the SIDE face (+X). Phones slide in long-wise.
 ● = alignment pin positions (near corners)
