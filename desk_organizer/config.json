@@ -4,7 +4,7 @@
     "body": {
         "width": 170,
         "depth": 90,
-        "height": 135,
+        "height": 140,
         "wall": 3.0,
         "fillet": 2.0
     },
