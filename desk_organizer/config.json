@@ -28,7 +28,7 @@
     },
 
     "split": {
-        "z": 45,
+        "z": 50,
         "pin_diameter": 6,
         "pin_height": 10,
         "pin_clearance": 0.2,
