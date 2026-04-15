@@ -445,9 +445,8 @@ def build_top(
         )
         body = body.cut(hole)
 
-    # Flip 180° around X so pocket openings face up, split face on top
-    body = body.rotateAboutCenter((1, 0, 0), 180)
-    body = _move_to_build_plate(body)
+    # No rotation needed — pockets already open upward, pin holes on
+    # the bottom face (build plate side).  Ready to print as-is.
 
     return body
 
