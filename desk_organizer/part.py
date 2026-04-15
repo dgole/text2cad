@@ -67,14 +67,14 @@ PEN_POCKET_DEPTH = CFG["pen_slots"]["pocket_depth"]
 PEN_SPACING = CFG["pen_slots"]["spacing"]
 PEN_OFFSET_X = CFG["pen_slots"]["offset_x"]
 
-# Phone slots (front-accessible thin slots)
+# Phone slots (horizontal mail-slot style openings on the front face)
 PHONE_COUNT = CFG["phone_slots"]["count"]
-PHONE_WIDTH = CFG["phone_slots"]["width"]
-PHONE_THICKNESS = CFG["phone_slots"]["thickness"]
-PHONE_SLOT_HEIGHT = CFG["phone_slots"]["slot_height"]
-PHONE_SPACING = CFG["phone_slots"]["spacing"]
-PHONE_OFFSET_X = CFG["phone_slots"]["offset_x"]
-PHONE_OFFSET_Z = CFG["phone_slots"]["offset_z"]
+PHONE_WIDTH = CFG["phone_slots"]["width"]          # X span of the opening
+PHONE_GAP = CFG["phone_slots"]["gap"]              # Z height of the slot (thin gap)
+PHONE_INTERIOR_DEPTH = CFG["phone_slots"]["interior_depth"]  # Y depth inside the body
+PHONE_SPACING = CFG["phone_slots"]["spacing"]      # Z gap between stacked slots
+PHONE_OFFSET_X = CFG["phone_slots"]["offset_x"]   # X offset of group center
+PHONE_OFFSET_Z = CFG["phone_slots"]["offset_z"]   # Z position of lowest slot bottom
 
 
 # ---------------------------------------------------------------------------
@@ -198,21 +198,22 @@ def build_full(
     pen_offset_x: float = PEN_OFFSET_X,
     phone_count: int = PHONE_COUNT,
     phone_width: float = PHONE_WIDTH,
-    phone_thickness: float = PHONE_THICKNESS,
-    phone_slot_height: float = PHONE_SLOT_HEIGHT,
+    phone_gap: float = PHONE_GAP,
+    phone_interior_depth: float = PHONE_INTERIOR_DEPTH,
     phone_spacing: float = PHONE_SPACING,
     phone_offset_x: float = PHONE_OFFSET_X,
     phone_offset_z: float = PHONE_OFFSET_Z,
 ) -> cq.Workplane:
     """
-    Stage 3 — complete organizer with phone slots cut through the front face.
+    Stage 3 — complete organizer with horizontal phone slots in the front.
 
-    Phone slots are thin rectangular cutouts accessible from the front:
-      - phone_width wide in X
-      - phone_thickness deep in Y (just enough for a phone to sit in)
-      - phone_slot_height tall in Z, starting at phone_offset_z from the base
-      - Cut all the way through the front wall so the phone is visible/accessible
-      - Open at the top so you can slide the phone in from above
+    Phone slots are horizontal mail-slot openings on the front face.
+    The phone lays flat and slides in from the front:
+      - phone_width wide in X (the slot opening width)
+      - phone_gap tall in Z (thin horizontal gap — just enough for a phone)
+      - phone_interior_depth deep in Y (how far back the phone goes)
+      - Slots are stacked vertically, starting at phone_offset_z
+      - Cut all the way through the front wall
     """
     body = build_pockets(
         width, depth, height, wall, fillet,
@@ -221,33 +222,30 @@ def build_full(
         pen_count, pen_diameter, pen_pocket_depth, pen_spacing, pen_offset_x,
     )
 
-    # --- Phone slots (front-accessible thin slots) ---
-    # Each slot is a thin box cut into the body from the front face:
+    # --- Phone slots (horizontal, stacked vertically on the front face) ---
+    # Each slot is a wide, thin box:
     #   X = phone_width
-    #   Y = phone_thickness (how far into the body the slot extends)
-    #   Z = phone_slot_height
-    # We overshoot past the front face by 1mm so the cut cleanly pierces
-    # the front wall.
-
-    total_phones_span = phone_count * phone_width + (phone_count - 1) * phone_spacing
-    phone_start_x = phone_offset_x - total_phones_span / 2 + phone_width / 2
+    #   Y = phone_interior_depth (how far back the phone slides in)
+    #   Z = phone_gap (thin horizontal opening)
+    # Stacked from bottom to top, with phone_spacing between them.
+    # Overshoot 1mm past the front face to ensure a clean cut.
 
     front_y = -depth / 2  # front face Y position
+    overshoot = 1.0
 
     for i in range(phone_count):
-        px = phone_start_x + i * (phone_width + phone_spacing)
+        # Z position: stack slots upward from offset_z
+        slot_z = phone_offset_z + i * (phone_gap + phone_spacing)
 
-        # The cutter box extends from 1mm in front of the front face to
-        # phone_thickness into the body.
-        overshoot = 1.0
-        cutter_y = phone_thickness + overshoot
-        cutter_center_y = front_y - overshoot + cutter_y / 2
+        # Y: start 1mm in front of the front face, extend interior_depth into body
+        cutter_y = phone_interior_depth + overshoot
+        cutter_start_y = front_y - overshoot
 
         slot = (
             cq.Workplane("XY")
-            .box(phone_width, cutter_y, phone_slot_height,
-                 centered=(True, True, False))
-            .translate((px, cutter_center_y, phone_offset_z))
+            .box(phone_width, cutter_y, phone_gap,
+                 centered=(True, False, False))
+            .translate((phone_offset_x, cutter_start_y, slot_z))
         )
         body = body.cut(slot)
 
@@ -305,9 +303,12 @@ def main():
 
     # Phone slot overrides
     parser.add_argument("--phone-count", type=int, default=PHONE_COUNT)
-    parser.add_argument("--phone-width", type=float, default=PHONE_WIDTH)
-    parser.add_argument("--phone-thickness", type=float, default=PHONE_THICKNESS)
-    parser.add_argument("--phone-slot-height", type=float, default=PHONE_SLOT_HEIGHT)
+    parser.add_argument("--phone-width", type=float, default=PHONE_WIDTH,
+                        help="Width of the slot opening on the front face (X)")
+    parser.add_argument("--phone-gap", type=float, default=PHONE_GAP,
+                        help="Height of the slot opening (Z) — phone thickness + clearance")
+    parser.add_argument("--phone-interior-depth", type=float, default=PHONE_INTERIOR_DEPTH,
+                        help="How far back the phone slides in (Y)")
 
     args = parser.parse_args()
 
@@ -347,8 +348,8 @@ def main():
             pen_spacing=args.pen_spacing,
             phone_count=args.phone_count,
             phone_width=args.phone_width,
-            phone_thickness=args.phone_thickness,
-            phone_slot_height=args.phone_slot_height,
+            phone_gap=args.phone_gap,
+            phone_interior_depth=args.phone_interior_depth,
         )
 
     name = f"desk_organizer_{stage}"

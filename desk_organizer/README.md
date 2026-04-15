@@ -17,9 +17,14 @@ Front view:                Top view:
 │                 │       │ │     │ │     │  ○    │
 │                 │       │ │ rm1 │ │ rm2 │  ○    │
 │                 │       │ │     │ │     │ pens  │
-│  ┌────┐ ┌────┐ │       │ └─────┘ └─────┘       │
-│  │ ph1│ │ ph2│ │       └───────────────────────┘
-└──┴────┴─┴────┴─┘
+│ ┌─────────────┐ │       │ └─────┘ └─────┘       │
+│ │  phone 2    │ │       └───────────────────────┘
+│ ┌─────────────┐ │
+│ │  phone 1    │ │
+└─┴─────────────┴─┘
+
+Phone slots are horizontal mail-slot openings — the phone lays flat
+and slides in from the front face. Slots are stacked at the bottom.
 ```
 
 ## Reference
@@ -75,13 +80,13 @@ CLI flags override config values for one-off tweaks.
 
 | Key                        | Description                                         |
 |----------------------------|-----------------------------------------------------|
-| `phone_slots.count`        | Number of phone slots                               |
-| `phone_slots.width`        | Width of each phone slot opening (X)                |
-| `phone_slots.thickness`    | Depth of the slot into the body (Y — phone sits in this gap) |
-| `phone_slots.slot_height`  | Height of the phone slot opening (Z)                |
-| `phone_slots.spacing`      | Gap between adjacent phone slots                    |
+| `phone_slots.count`        | Number of phone slots (stacked vertically)          |
+| `phone_slots.width`        | Width of the slot opening on the front face (X)     |
+| `phone_slots.gap`          | Height of the slot opening (Z) — phone thickness + clearance |
+| `phone_slots.interior_depth` | How far back the phone slides in (Y)              |
+| `phone_slots.spacing`      | Vertical gap (Z) between stacked phone slots        |
 | `phone_slots.offset_x`    | X offset of the phone slot group from body center   |
-| `phone_slots.offset_z`    | Z offset of the slot bottom from the base           |
+| `phone_slots.offset_z`    | Z position of the bottom of the lowest slot         |
 
 ## Usage
 
@@ -97,5 +102,5 @@ python part.py pockets --remote-width 35 --pen-diameter 14
 
 # Stage 3 — full part with phone slots
 python part.py full
-python part.py full --phone-width 80 --phone-thickness 15
+python part.py full --phone-width 85 --phone-gap 14
 ```

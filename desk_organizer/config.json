@@ -29,11 +29,11 @@
 
     "phone_slots": {
         "count": 2,
-        "width": 70,
-        "thickness": 12,
-        "slot_height": 40,
+        "width": 80,
+        "gap": 12,
+        "interior_depth": 70,
         "spacing": 4,
         "offset_x": 0,
-        "offset_z": 0
+        "offset_z": 3
     }
 }
