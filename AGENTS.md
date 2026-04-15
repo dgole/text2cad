@@ -53,7 +53,8 @@ text2cad/
 
 ## Part script conventions
 
-Look at `dust_port_adapter/part.py` as the canonical example. Key patterns:
+Look at `desk_organizer/part.py` as the canonical example (it uses staged
+builds, a `STAGES` registry, and argparse CLI overrides). Key patterns:
 
 ### Imports and path setup
 Every part.py starts with:
@@ -125,7 +126,6 @@ reusable across parts, put it here.
   through-hole at an (x, y) position on a face.
 - `add_lip(body, width, height, lip_depth, lip_thickness)` — add a clip lip
   ring around a rectangular opening.
-- `extrude(workplane, height)` — simple extrude wrapper.
 
 ### `cad/profiles.py`
 - `rounded_rect(width, height, fillet)` — 2D rounded rectangle.
