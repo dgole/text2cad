@@ -13,7 +13,7 @@
         "count": 2,
         "width": 30,
         "depth": 55,
-        "pocket_depth": 85,
+        "pocket_depth": 62,
         "spacing": 6,
         "fillet": 3.0,
         "offset_x": -30
@@ -22,18 +22,18 @@
     "pen_slots": {
         "count": 3,
         "diameter": 16,
-        "pocket_depth": 85,
+        "pocket_depth": 62,
         "spacing": 22,
         "offset_x": 45
     },
 
     "phone_slots": {
         "count": 2,
-        "width": 80,
+        "width": 70,
         "gap": 12,
-        "interior_depth": 70,
+        "interior_length": 150,
         "spacing": 4,
-        "offset_x": 0,
+        "offset_y": 0,
         "offset_z": 3
     }
 }

@@ -10,21 +10,20 @@ is a solid rectangular prism with pockets cut into it:
 - **2 phone slots** — thin slots accessible from the front face at the bottom, open at the top so you can slide a phone in
 
 ```
-Front view:                Top view:
+Front view (+Y face):      Top view:                   Side view (+X face):
 
-┌─────────────────┐       ┌───────────────────────┐
-│                 │       │ ┌─────┐ ┌─────┐  ○    │
-│                 │       │ │     │ │     │  ○    │
-│                 │       │ │ rm1 │ │ rm2 │  ○    │
-│                 │       │ │     │ │     │ pens  │
-│ ┌─────────────┐ │       │ └─────┘ └─────┘       │
-│ │  phone 2    │ │       └───────────────────────┘
-│ ┌─────────────┐ │
-│ │  phone 1    │ │
-└─┴─────────────┴─┘
+┌─────────────────┐       ┌───────────────────────┐   ┌──────────┐
+│                 │       │ ┌─────┐ ┌─────┐  ○    │   │          │
+│                 │       │ │     │ │     │  ○    │   │          │
+│                 │       │ │ rm1 │ │ rm2 │  ○    │   │          │
+│                 │       │ │     │ │     │ pens  │   │──────────│ ← phone 2
+│                 │       │ └─────┘ └─────┘       │   │──────────│ ← phone 1
+│                 │       └───────────────────────┘   └──────────┘
+└─────────────────┘
 
-Phone slots are horizontal mail-slot openings — the phone lays flat
-and slides in from the front face. Slots are stacked at the bottom.
+Phone slots are horizontal mail-slot openings on the SIDE face (+X).
+The phone lays flat and slides in long-wise — its long axis aligns
+with the organizer's long axis (X). Slots are stacked at the bottom.
 ```
 
 ## Reference
@@ -78,15 +77,15 @@ CLI flags override config values for one-off tweaks.
 
 ### Phone slots
 
-| Key                        | Description                                         |
-|----------------------------|-----------------------------------------------------|
-| `phone_slots.count`        | Number of phone slots (stacked vertically)          |
-| `phone_slots.width`        | Width of the slot opening on the front face (X)     |
-| `phone_slots.gap`          | Height of the slot opening (Z) — phone thickness + clearance |
-| `phone_slots.interior_depth` | How far back the phone slides in (Y)              |
-| `phone_slots.spacing`      | Vertical gap (Z) between stacked phone slots        |
-| `phone_slots.offset_x`    | X offset of the phone slot group from body center   |
-| `phone_slots.offset_z`    | Z position of the bottom of the lowest slot         |
+| Key                          | Description                                       |
+|------------------------------|---------------------------------------------------|
+| `phone_slots.count`          | Number of phone slots (stacked vertically)        |
+| `phone_slots.width`          | Width of slot opening on the side face (Y span)   |
+| `phone_slots.gap`            | Height of slot opening (Z) — phone thickness + clearance |
+| `phone_slots.interior_length` | How far the phone extends into the body (X)      |
+| `phone_slots.spacing`        | Vertical gap (Z) between stacked phone slots      |
+| `phone_slots.offset_y`      | Y offset of slot opening center on the side face  |
+| `phone_slots.offset_z`      | Z position of the bottom of the lowest slot       |
 
 ## Usage
 
@@ -102,5 +101,5 @@ python part.py pockets --remote-width 35 --pen-diameter 14
 
 # Stage 3 — full part with phone slots
 python part.py full
-python part.py full --phone-width 85 --phone-gap 14
+python part.py full --phone-gap 14 --phone-interior-length 145
 ```
