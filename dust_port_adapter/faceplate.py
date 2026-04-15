@@ -77,6 +77,14 @@ SCREW_X = _fp["screw_x"]
 SCREW_Y = _fp["screw_y"]
 SCREW_DIAMETER = _fp["screw_diameter"]
 
+# Port hole — quadrilateral cutout through the cap
+_ph = _fp["port_hole"]
+PORT_HOLE_AX, PORT_HOLE_AY = _ph["A"]
+PORT_HOLE_BX, PORT_HOLE_BY = _ph["B"]
+PORT_HOLE_CX, PORT_HOLE_CY = _ph["C"]
+PORT_HOLE_DX, PORT_HOLE_DY = _ph["D"]
+PORT_HOLE_FILLET = _ph["fillet_radius"]
+
 
 # ---------------------------------------------------------------------------
 # Builder
@@ -98,6 +106,11 @@ def build_faceplate(
     screw_x: float = SCREW_X,
     screw_y: float = SCREW_Y,
     screw_diameter: float = SCREW_DIAMETER,
+    port_hole_ax: float = PORT_HOLE_AX, port_hole_ay: float = PORT_HOLE_AY,
+    port_hole_bx: float = PORT_HOLE_BX, port_hole_by: float = PORT_HOLE_BY,
+    port_hole_cx: float = PORT_HOLE_CX, port_hole_cy: float = PORT_HOLE_CY,
+    port_hole_dx: float = PORT_HOLE_DX, port_hole_dy: float = PORT_HOLE_DY,
+    port_hole_fillet: float = PORT_HOLE_FILLET,
 ) -> cq.Workplane:
     """
     Build the faceplate: walls around the rim + solid cap on top.
@@ -133,6 +146,23 @@ def build_faceplate(
         .extrude(cap_thickness + 2)  # generous to ensure full punch-through
     )
     result = result.cut(screw_hole)
+
+    # --- Port hole: quadrilateral cutout through the cap ---
+    port_hole_verts = [
+        (port_hole_ax, port_hole_ay),
+        (port_hole_bx, port_hole_by),
+        (port_hole_cx, port_hole_cy),
+        (port_hole_dx, port_hole_dy),
+    ]
+    port_hole_fillets = [port_hole_fillet] * 4
+    # Build the quad solid starting just below the cap and punching through
+    port_hole_solid = _build_quad_solid(
+        port_hole_verts, port_hole_fillets,
+        thickness=cap_thickness + 2,  # generous for full punch-through
+        edge_bulges=[0.0, 0.0, 0.0, 0.0],
+    )
+    port_hole_solid = port_hole_solid.translate((0, 0, wall_height - 1))
+    result = result.cut(port_hole_solid)
 
     # Flip upside-down so the cap is on the bottom (print-bed side) and the
     # walls open upward.  Then shift so the lowest point sits at Z = 0.
@@ -190,6 +220,18 @@ def main():
     parser.add_argument("--screw-diameter", type=float, default=SCREW_DIAMETER,
                         help="Screw hole diameter.")
 
+    # Port hole (quadrilateral cutout)
+    parser.add_argument("--port-hole-ax", type=float, default=PORT_HOLE_AX)
+    parser.add_argument("--port-hole-ay", type=float, default=PORT_HOLE_AY)
+    parser.add_argument("--port-hole-bx", type=float, default=PORT_HOLE_BX)
+    parser.add_argument("--port-hole-by", type=float, default=PORT_HOLE_BY)
+    parser.add_argument("--port-hole-cx", type=float, default=PORT_HOLE_CX)
+    parser.add_argument("--port-hole-cy", type=float, default=PORT_HOLE_CY)
+    parser.add_argument("--port-hole-dx", type=float, default=PORT_HOLE_DX)
+    parser.add_argument("--port-hole-dy", type=float, default=PORT_HOLE_DY)
+    parser.add_argument("--port-hole-fillet", type=float, default=PORT_HOLE_FILLET,
+                        help="Fillet radius for port hole corners.")
+
     args = parser.parse_args()
 
     body = build_faceplate(
@@ -208,6 +250,11 @@ def main():
         screw_x=args.screw_x,
         screw_y=args.screw_y,
         screw_diameter=args.screw_diameter,
+        port_hole_ax=args.port_hole_ax, port_hole_ay=args.port_hole_ay,
+        port_hole_bx=args.port_hole_bx, port_hole_by=args.port_hole_by,
+        port_hole_cx=args.port_hole_cx, port_hole_cy=args.port_hole_cy,
+        port_hole_dx=args.port_hole_dx, port_hole_dy=args.port_hole_dy,
+        port_hole_fillet=args.port_hole_fillet,
     )
 
     to_stl(body, "dust_port_faceplate", output_dir=args.output_dir)

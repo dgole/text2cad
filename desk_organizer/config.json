@@ -32,9 +32,8 @@
         "width": 70,
         "thickness": 12,
         "slot_height": 40,
-        "slot_depth": 50,
         "spacing": 4,
-        "offset_x": -30,
+        "offset_x": 0,
         "offset_z": 0
     }
 }

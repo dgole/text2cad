@@ -4,16 +4,17 @@ Part: Desk Organizer
 
 Description:
     A minimalist desktop / nightstand organizer shaped as a rectangular prism.
-    Features:
+    All features are created by subtracting pockets from a solid block:
       - 2 TV remote slots (rectangular pockets cut from the top, left side)
-      - 3 pen slots (circular pockets cut from the top, right side)
-      - 2 phone slots (thin slots cut from the front face at the bottom,
-        open at the top so you can slide a phone in)
+      - 3 pen slots (circular holes cut from the top, right side)
+      - 2 phone slots (thin slots cut through the front face at the bottom)
 
 Usage:
     python part.py block          # Solid body only — check overall size
     python part.py pockets        # Body + top pockets (remotes & pens)
     python part.py full           # Complete part with phone slots
+
+    python part.py full --width 180 --phone-width 80
 """
 
 from __future__ import annotations
@@ -71,7 +72,6 @@ PHONE_COUNT = CFG["phone_slots"]["count"]
 PHONE_WIDTH = CFG["phone_slots"]["width"]
 PHONE_THICKNESS = CFG["phone_slots"]["thickness"]
 PHONE_SLOT_HEIGHT = CFG["phone_slots"]["slot_height"]
-PHONE_SLOT_DEPTH = CFG["phone_slots"]["slot_depth"]
 PHONE_SPACING = CFG["phone_slots"]["spacing"]
 PHONE_OFFSET_X = CFG["phone_slots"]["offset_x"]
 PHONE_OFFSET_Z = CFG["phone_slots"]["offset_z"]
@@ -200,7 +200,6 @@ def build_full(
     phone_width: float = PHONE_WIDTH,
     phone_thickness: float = PHONE_THICKNESS,
     phone_slot_height: float = PHONE_SLOT_HEIGHT,
-    phone_slot_depth: float = PHONE_SLOT_DEPTH,
     phone_spacing: float = PHONE_SPACING,
     phone_offset_x: float = PHONE_OFFSET_X,
     phone_offset_z: float = PHONE_OFFSET_Z,
@@ -209,11 +208,10 @@ def build_full(
     Stage 3 — complete organizer with phone slots cut through the front face.
 
     Phone slots are thin rectangular cutouts accessible from the front:
-      - Wide in X (phone_width)
-      - Thin in Y (phone_thickness) — just enough for a phone
-      - phone_slot_height tall (Z), starting at phone_offset_z
-      - They pierce through the front wall and extend phone_slot_depth
-        inward so the phone can lean back in the slot
+      - phone_width wide in X
+      - phone_thickness deep in Y (just enough for a phone to sit in)
+      - phone_slot_height tall in Z, starting at phone_offset_z from the base
+      - Cut all the way through the front wall so the phone is visible/accessible
       - Open at the top so you can slide the phone in from above
     """
     body = build_pockets(
@@ -223,13 +221,13 @@ def build_full(
         pen_count, pen_diameter, pen_pocket_depth, pen_spacing, pen_offset_x,
     )
 
-    # --- Phone slots (front-accessible, open at the top) ---
-    # The slot is a thin box:
-    #   X dimension = phone_width
-    #   Y dimension = phone_thickness (thin gap)
-    #   Z dimension = phone_slot_height
-    # Positioned so the front edge of the slot is flush with (or just past)
-    # the front face of the body, ensuring it cuts through the front wall.
+    # --- Phone slots (front-accessible thin slots) ---
+    # Each slot is a thin box cut into the body from the front face:
+    #   X = phone_width
+    #   Y = phone_thickness (how far into the body the slot extends)
+    #   Z = phone_slot_height
+    # We overshoot past the front face by 1mm so the cut cleanly pierces
+    # the front wall.
 
     total_phones_span = phone_count * phone_width + (phone_count - 1) * phone_spacing
     phone_start_x = phone_offset_x - total_phones_span / 2 + phone_width / 2
@@ -239,17 +237,17 @@ def build_full(
     for i in range(phone_count):
         px = phone_start_x + i * (phone_width + phone_spacing)
 
-        # Position the slot so it starts at the front face and extends inward.
-        # We add a 1mm overshoot past the front face to ensure a clean cut.
+        # The cutter box extends from 1mm in front of the front face to
+        # phone_thickness into the body.
         overshoot = 1.0
-        slot_y_extent = phone_slot_depth + overshoot
-        slot_center_y = front_y - overshoot + slot_y_extent / 2
+        cutter_y = phone_thickness + overshoot
+        cutter_center_y = front_y - overshoot + cutter_y / 2
 
         slot = (
             cq.Workplane("XY")
-            .box(phone_width, slot_y_extent, phone_slot_height,
+            .box(phone_width, cutter_y, phone_slot_height,
                  centered=(True, True, False))
-            .translate((px, slot_center_y, phone_offset_z))
+            .translate((px, cutter_center_y, phone_offset_z))
         )
         body = body.cut(slot)
 
@@ -310,7 +308,6 @@ def main():
     parser.add_argument("--phone-width", type=float, default=PHONE_WIDTH)
     parser.add_argument("--phone-thickness", type=float, default=PHONE_THICKNESS)
     parser.add_argument("--phone-slot-height", type=float, default=PHONE_SLOT_HEIGHT)
-    parser.add_argument("--phone-slot-depth", type=float, default=PHONE_SLOT_DEPTH)
 
     args = parser.parse_args()
 
@@ -352,7 +349,6 @@ def main():
             phone_width=args.phone_width,
             phone_thickness=args.phone_thickness,
             phone_slot_height=args.phone_slot_height,
-            phone_slot_depth=args.phone_slot_depth,
         )
 
     name = f"desk_organizer_{stage}"
