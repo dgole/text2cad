@@ -1,0 +1,40 @@
+{
+    "_comment": "All dimensions in mm. This is the single source of truth for parameters.",
+
+    "body": {
+        "width": 160,
+        "depth": 80,
+        "height": 100,
+        "wall": 3.0,
+        "fillet": 2.0
+    },
+
+    "remote_slots": {
+        "count": 2,
+        "width": 30,
+        "depth": 55,
+        "pocket_depth": 85,
+        "spacing": 6,
+        "fillet": 3.0,
+        "offset_x": -30
+    },
+
+    "pen_slots": {
+        "count": 3,
+        "diameter": 16,
+        "pocket_depth": 85,
+        "spacing": 22,
+        "offset_x": 45
+    },
+
+    "phone_slots": {
+        "count": 2,
+        "width": 70,
+        "thickness": 12,
+        "slot_height": 40,
+        "slot_depth": 50,
+        "spacing": 4,
+        "offset_x": -30,
+        "offset_z": 0
+    }
+}
