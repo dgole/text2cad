@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """
-Part: <PART_NAME>
+<Project Name> — <Part description>
 
 Description:
-    <Describe what this part does and what it mates to.>
+    <Describe what this script produces and what it mates to.>
 
 Usage:
     python part.py plate
@@ -17,13 +17,13 @@ import json
 import sys
 from pathlib import Path
 
-# Add project root to path so we can import cad.*
+# Add repo root to path so we can import cad.*
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from cad.export import to_stl  # noqa: E402
 
 # ---------------------------------------------------------------------------
-# Load config — single source of truth for all parameters
+# Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
 _CONFIG_PATH = Path(__file__).parent / "config.json"
