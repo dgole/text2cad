@@ -58,6 +58,11 @@ LID_HEIGHT = CFG["lid"]["height"]
 H_SLOTS = CFG["horizontal_slots"]
 V_SLOTS = CFG["vertical_slots"]
 
+# Magnet pockets
+MAGNET_DIAMETER = CFG["magnet_pockets"]["diameter"]
+MAGNET_DEPTH    = CFG["magnet_pockets"]["depth"]
+MAGNET_INSET    = CFG["magnet_pockets"]["inset"]
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -136,7 +141,41 @@ def _cut_pen_troughs(
             .circle(radius)
             .extrude(length)
         )
-        cutter = cutter.translate((0, cy_start, 0))
+        cutter = cutter.translate((0, cy_start + length, 0))
+        body = body.cut(cutter)
+
+    return body
+
+
+def _cut_magnet_pockets(
+    body: cq.Workplane,
+    body_width: float,
+    body_depth: float,
+    body_height: float,
+    diameter: float,
+    depth: float,
+    inset: float,
+) -> cq.Workplane:
+    """Cut shallow cylindrical magnet pockets into the bottom face at each corner."""
+    radius = diameter / 2
+    hw = body_width / 2
+    hd = body_depth / 2
+
+    corners = [
+        ( hw - inset,  hd - inset),
+        (-hw + inset,  hd - inset),
+        ( hw - inset, -hd + inset),
+        (-hw + inset, -hd + inset),
+    ]
+
+    for cx, cy in corners:
+        cutter = (
+            cq.Workplane("XY")
+            .center(cx, cy)
+            .workplane(offset=body_height)
+            .circle(radius)
+            .extrude(-depth)
+        )
         body = body.cut(cutter)
 
     return body
@@ -164,11 +203,15 @@ def build_base(
     fillet: float = BODY_FILLET,
     h_slots: list = H_SLOTS,
     v_slots: list = V_SLOTS,
+    magnet_diameter: float = MAGNET_DIAMETER,
+    magnet_depth: float = MAGNET_DEPTH,
+    magnet_inset: float = MAGNET_INSET,
     **_kw,
 ) -> cq.Workplane:
-    """Stage: base with half-cylinder pen troughs cut from the top."""
+    """Stage: base with half-cylinder pen troughs cut from the top and magnet pockets on the bottom."""
     body = _make_box(width, depth, height, fillet)
     body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots)
+    body = _cut_magnet_pockets(body, width, depth, height, magnet_diameter, magnet_depth, magnet_inset)
     return body
 
 

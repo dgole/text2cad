@@ -2,9 +2,9 @@
     "_comment": "All dimensions in mm. Fancy pen holder — base tray + lid.",
 
     "body": {
-        "width": 180,
-        "depth": 90,
-        "height": 40,
+        "width": 185,
+        "depth": 185,
+        "height": 20,
         "fillet": 3.0
     },
 
@@ -13,39 +13,106 @@
         "_comment": "Lid shares body width/depth/fillet. Only height differs."
     },
 
+    "_magnet_pockets_comment": "Shallow cylindrical cutouts on the bottom face of each corner to inset neodymium disc magnets. inset is distance from each corner edge to the cylinder center.",
+    "magnet_pockets": {
+        "diameter": 5.5,
+        "depth": 2.5,
+        "inset": 7.0
+    },
+
     "_pen_slots_comment": "Origin (0,0) is the bottom-left corner of the body footprint viewed from above. X = left-to-right (width), Y = bottom-to-top (depth). Horizontal slots run along +X, vertical slots run along +Y. Cylinder center sits at the top surface (Z = body height).",
     "horizontal_slots": [
         {
             "start_x": 10.0,
-            "start_y": 15.0,
-            "length": 160.0,
-            "diameter": 14.0
+            "start_y": 22.0,
+            "length": 165.0,
+            "diameter": 18.0
         },
         {
             "start_x": 10.0,
-            "start_y": 35.0,
+            "start_y": 47.0,
             "length": 105.0,
-            "diameter": 14.0
+            "diameter": 18.0
+        },
+        {
+            "start_x": 10.0,
+            "start_y": 72.0,
+            "length": 105.0,
+            "diameter": 18.0
+        },
+        {
+            "start_x": 10.0,
+            "start_y": 97.0,
+            "length": 105.0,
+            "diameter": 18.0
+        },
+        {
+            "start_x": 120.0,
+            "start_y": 47.0,
+            "length": 55.0,
+            "diameter": 18.0
+        },
+        {
+            "start_x": 120.0,
+            "start_y": 72.0,
+            "length": 55.0,
+            "diameter": 18.0
+        },
+        {
+            "start_x": 120.0,
+            "start_y": 97.0,
+            "length": 55.0,
+            "diameter": 18.0
         }
     ],
     "vertical_slots": [
         {
-            "start_x": 10.0,
-            "start_y": 55.0,
-            "length": 30.0,
-            "diameter": 14.0
+            "start_x": 20.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
         },
         {
-            "start_x": 30.0,
-            "start_y": 55.0,
-            "length": 30.0,
-            "diameter": 14.0
+            "start_x": 41.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
         },
         {
-            "start_x": 50.0,
-            "start_y": 55.0,
-            "length": 30.0,
-            "diameter": 14.0
+            "start_x": 62.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
+        },
+        {
+            "start_x": 83.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
+        },
+        {
+            "start_x": 104.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
+        },
+        {
+            "start_x": 125.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
+        },
+        {
+            "start_x": 146.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
+        },
+        {
+            "start_x": 167.0,
+            "start_y": 117.0,
+            "length": 55.0,
+            "diameter": 16.0
         }
     ]
 }
