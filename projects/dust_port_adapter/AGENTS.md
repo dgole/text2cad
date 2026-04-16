@@ -88,7 +88,7 @@ Vertices define the **inner edge** (against the rim). All values in mm.
 ## Usage
 
 ```bash
-cd dust_port_adapter
+cd projects/dust_port_adapter
 
 # Profile test piece
 python profile_test.py

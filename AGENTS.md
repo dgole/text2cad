@@ -31,12 +31,13 @@ text2cad/
 │   ├── reference/          For photos
 │   └── output/             For generated STLs
 │
-├── <part_name>/            One directory per part (self-contained)
-│   ├── config.json         Parameter defaults (single source of truth)
-│   ├── part.py             Bespoke parametric script for this part
-│   ├── README.md           Part-specific docs, measurements, stage table
-│   ├── reference/          Reference photos from the human
-│   └── output/             Generated STL files
+├── projects/               All part projects live here
+│   └── <part_name>/        One directory per part (self-contained)
+│       ├── config.json     Parameter defaults (single source of truth)
+│       ├── part.py         Bespoke parametric script for this part
+│       ├── README.md       Part-specific docs, measurements, stage table
+│       ├── reference/      Reference photos from the human
+│       └── output/         Generated STL files
 │
 └── requirements.txt
 ```
@@ -45,11 +46,11 @@ text2cad/
 
 1. Copy the template:
    ```bash
-   cp -r _template/ <part_name>/
+   cp -r _template/ projects/<part_name>/
    ```
-2. Put any reference images the human provides into `<part_name>/reference/`.
-3. Edit `<part_name>/part.py` — this is the main deliverable. See conventions below.
-4. Add a `<part_name>/README.md` documenting the part, its parameters, and build stages.
+2. Put any reference images the human provides into `projects/<part_name>/reference/`.
+3. Edit `projects/<part_name>/part.py` — this is the main deliverable. See conventions below.
+4. Add a `projects/<part_name>/README.md` documenting the part, its parameters, and build stages.
 
 ## Part script conventions
 
@@ -62,9 +63,10 @@ Every part.py starts with:
 from __future__ import annotations
 import sys
 from pathlib import Path
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 ```
-This lets it import from `cad/` regardless of working directory.
+This lets it import from `cad/` regardless of working directory (part scripts
+live two levels below the repo root: `projects/<part_name>/`).
 
 ### Parameters via config.json
 Each part directory has a `config.json` — the single source of truth for all
@@ -108,7 +110,7 @@ python part.py plate --port-width 45
 ### Running part scripts
 Always run from the part directory (or specify the path):
 ```bash
-cd dust_port_adapter && python part.py plate
+cd projects/dust_port_adapter && python profile_test.py
 ```
 STL files go into the part's own `output/` directory.
 

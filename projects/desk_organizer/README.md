@@ -118,7 +118,7 @@ CLI flags override config values for one-off tweaks.
 ## Usage
 
 ```bash
-cd desk_organizer
+cd projects/desk_organizer
 
 # Reference stages
 python part.py block

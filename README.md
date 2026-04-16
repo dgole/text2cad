@@ -15,18 +15,20 @@ pip install -r requirements.txt
 
 - **`cad/`** — Shared toolkit (profiles, operations, STL export)
 - **`_template/`** — Copy this to start a new part project
-- **`<part_name>/`** — Self-contained part: script, reference images, output STLs
+- **`projects/`** — All part projects live here
+  - **`desk_organizer/`** — Desktop organizer with remote, pen, and phone slots
+  - **`dust_port_adapter/`** — Clip-on adapter for Makita saw dust port
 
 ## Quick start
 
 ```bash
 # Start a new part
-cp -r _template/ my_part/
+cp -r _template/ projects/my_part/
 
 # Generate an STL (from inside the part directory)
-cd dust_port_adapter
-python part.py plate
-python part.py plate --port-width 45
+cd projects/dust_port_adapter
+python profile_test.py
+python profile_test.py --wall 3
 ```
 
 See [AGENTS.md](AGENTS.md) for detailed conventions and workflow.

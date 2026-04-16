@@ -18,7 +18,7 @@ import sys
 from pathlib import Path
 
 # Add project root to path so we can import cad.*
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 from cad.export import to_stl  # noqa: E402
 
