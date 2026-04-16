@@ -468,6 +468,27 @@ def build_peg(
     )
 
 
+def build_pen_insert(
+    pen_diameter: float = PEN_DIAMETER,
+    pen_pocket_depth: float = PEN_POCKET_DEPTH,
+    **_kw,
+) -> cq.Workplane:
+    """
+    Cylindrical insert that sits inside a pen pocket.
+
+    - Diameter is 10% smaller than the pen pocket diameter so it drops
+      in with a loose fit.
+    - Height is half the pen pocket depth.
+    """
+    insert_diameter = pen_diameter * 0.9
+    insert_height = pen_pocket_depth / 2
+    return (
+        cq.Workplane("XY")
+        .circle(insert_diameter / 2)
+        .extrude(insert_height)
+    )
+
+
 # ---------------------------------------------------------------------------
 # Stage registry
 # ---------------------------------------------------------------------------
@@ -479,6 +500,7 @@ STAGES = {
     "bottom": build_bottom,
     "top": build_top,
     "peg": build_peg,
+    "pen_insert": build_pen_insert,
 }
 
 
