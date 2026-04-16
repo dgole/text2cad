@@ -4,10 +4,10 @@ Part: Fancy Pen Holder — base tray + lid
 
 Description:
     Base: a rectangular prism with horizontal half-cylinder pen troughs
-    cut from the top.  Each trough's cylinder axis runs along Y (front
-    to back).  The cylinder centre sits at the top surface of the base
-    so only the bottom half is removed — pens rest in the resulting
-    U-shaped channel.
+    cut from the top.  Each trough's cylinder axis runs along X (left
+    to right — the long axis).  The cylinder centre sits at the top
+    surface of the base so only the bottom half is removed — pens rest
+    in the resulting U-shaped channel.
 
     Lid: a plain rectangular prism with the same XY footprint.
 
@@ -15,7 +15,7 @@ Usage:
     python part.py block                # Solid base body — check size
     python part.py base                 # Base with pen troughs
     python part.py lid                  # Lid piece
-    python part.py base --pen-diameter 12 --pen-spacing 35
+    python part.py base --width 180      # override body width
 """
 
 from __future__ import annotations
@@ -54,12 +54,9 @@ BODY_FILLET = CFG["body"]["fillet"]
 # Lid
 LID_HEIGHT = CFG["lid"]["height"]
 
-# Pen slots
-PEN_COUNT       = CFG["pen_slots"]["count"]
-PEN_DIAMETER    = CFG["pen_slots"]["diameter"]
-PEN_SLOT_LENGTH = CFG["pen_slots"]["slot_length"]
-PEN_SPACING     = CFG["pen_slots"]["spacing"]
-PEN_OFFSET_X    = CFG["pen_slots"]["offset_x"]
+# Pen slots — horizontal (axis along +X) and vertical (axis along +Y)
+H_SLOTS = CFG["horizontal_slots"]
+V_SLOTS = CFG["vertical_slots"]
 
 
 # ---------------------------------------------------------------------------
@@ -82,43 +79,64 @@ def _make_box(
 
 def _cut_pen_troughs(
     body: cq.Workplane,
-    body_height: float,
+    body_width: float,
     body_depth: float,
-    pen_count: int,
-    pen_diameter: float,
-    slot_length: float,
-    spacing: float,
-    offset_x: float,
+    body_height: float,
+    h_slots: list,
+    v_slots: list,
 ) -> cq.Workplane:
     """
     Cut half-cylinder pen troughs into the top of *body*.
 
-    Each trough is a cylinder whose axis runs along Y.  The cylinder's
-    centre is at Z = body_height (the top surface), so only the bottom
-    hemisphere of the cylinder intersects the body — producing a
-    U-shaped channel that a pen can rest in.
+    The body box is centered at the CQ origin, but slots use a
+    corner-origin coordinate system where (0, 0) is the bottom-left
+    corner of the footprint (min-X, min-Y when viewed from above).
 
-    *slot_length* controls how long the trough is (along Y).  The
-    trough is centred in Y on the body.
+    Each slot dict has: start_x, start_y, length, diameter.
+    Horizontal slots run along +X; vertical slots run along +Y.
+    The cylinder center sits at Z = body_height (the top surface) so
+    only the bottom half is material removal.
     """
-    radius = pen_diameter / 2
+    # Corner-origin to CQ-centered offset
+    ox = -body_width / 2
+    oy = -body_depth / 2
 
-    # X positions for each slot, centred as a group around offset_x
-    total_span = (pen_count - 1) * spacing
-    start_x = offset_x - total_span / 2
+    # --- Horizontal slots (axis along +X) ---
+    for slot in h_slots:
+        sx = slot["start_x"]
+        sy = slot["start_y"]
+        length = slot["length"]
+        radius = slot["diameter"] / 2
 
-    for i in range(pen_count):
-        cx = start_x + i * spacing
+        cx_start = ox + sx
+        cy = oy + sy
 
-        # Build a cylinder oriented along Y, centred at (cx, 0, body_height)
-        # Length = slot_length, radius = pen_diameter / 2
         cutter = (
-            cq.Workplane("XZ")          # work in the XZ plane
-            .center(cx, body_height)     # cylinder centre at top surface
+            cq.Workplane("YZ")
+            .center(cy, body_height)
             .circle(radius)
-            .extrude(slot_length / 2)    # extrude in +Y
-            .mirror("XZ", union=True)    # mirror to get -Y half too
+            .extrude(length)
         )
+        cutter = cutter.translate((cx_start, 0, 0))
+        body = body.cut(cutter)
+
+    # --- Vertical slots (axis along +Y) ---
+    for slot in v_slots:
+        sx = slot["start_x"]
+        sy = slot["start_y"]
+        length = slot["length"]
+        radius = slot["diameter"] / 2
+
+        cx = ox + sx
+        cy_start = oy + sy
+
+        cutter = (
+            cq.Workplane("XZ")
+            .center(cx, body_height)
+            .circle(radius)
+            .extrude(length)
+        )
+        cutter = cutter.translate((0, cy_start, 0))
         body = body.cut(cutter)
 
     return body
@@ -144,19 +162,13 @@ def build_base(
     depth: float = BODY_DEPTH,
     height: float = BODY_HEIGHT,
     fillet: float = BODY_FILLET,
-    pen_count: int = PEN_COUNT,
-    pen_diameter: float = PEN_DIAMETER,
-    slot_length: float = PEN_SLOT_LENGTH,
-    pen_spacing: float = PEN_SPACING,
-    pen_offset_x: float = PEN_OFFSET_X,
+    h_slots: list = H_SLOTS,
+    v_slots: list = V_SLOTS,
     **_kw,
 ) -> cq.Workplane:
     """Stage: base with half-cylinder pen troughs cut from the top."""
     body = _make_box(width, depth, height, fillet)
-    body = _cut_pen_troughs(
-        body, height, depth,
-        pen_count, pen_diameter, slot_length, pen_spacing, pen_offset_x,
-    )
+    body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots)
     return body
 
 
@@ -209,17 +221,8 @@ def main():
     parser.add_argument("--lid-height", type=float, default=LID_HEIGHT,
                         help="Lid height (Z)")
 
-    # Pen-slot overrides
-    parser.add_argument("--pen-count",    type=int,   default=PEN_COUNT,
-                        help="Number of pen troughs")
-    parser.add_argument("--pen-diameter", type=float, default=PEN_DIAMETER,
-                        help="Diameter of the half-cylinder trough")
-    parser.add_argument("--slot-length",  type=float, default=PEN_SLOT_LENGTH,
-                        help="Length of each trough along Y")
-    parser.add_argument("--pen-spacing",  type=float, default=PEN_SPACING,
-                        help="Centre-to-centre spacing between troughs (X)")
-    parser.add_argument("--pen-offset-x", type=float, default=PEN_OFFSET_X,
-                        help="X offset of the trough group centre")
+    # Pen slots are defined in config.json (list of slot dicts).
+    # No CLI overrides — edit config.json to add/move/resize slots.
 
     args = parser.parse_args()
 

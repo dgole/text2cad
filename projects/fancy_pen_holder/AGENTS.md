@@ -2,17 +2,17 @@
 
 ## Description
 
-A rectangular-prism pen holder with a separate lid. The base has horizontal
-half-cylinder pen slots cut into it — the cylinder axis runs along Y
-(front-to-back), with the cylinder center sitting on the top edge of the
-base so only the bottom half is material removal. Pens rest in the troughs.
+A rectangular-prism pen holder with a separate lid. The base has
+half-cylinder pen troughs cut into the top surface — pens rest in the
+U-shaped channels. There are two groups of slots:
 
-The lid is a plain rectangular prism with the same XY footprint that sits
-on top of the base.
+- **Horizontal slots** — cylinder axis along +X (the long dimension).
+- **Vertical slots** — cylinder axis along +Y (the short dimension).
 
-## Reference
+Slot positions use a corner-origin coordinate system: (0,0) is the
+bottom-left corner of the body footprint viewed from above.
 
-- Human description of overall dimensions and pen slot geometry.
+The lid is a plain rectangular prism with the same XY footprint.
 
 ## Build stages
 
