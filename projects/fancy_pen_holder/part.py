@@ -55,6 +55,7 @@ LID_HEIGHT = CFG["lid"]["height"]
 
 # Slot types (reusable templates)
 SLOT_TYPES = CFG["slot_types"]
+SLOT_FILLET = CFG["slot_fillet"]
 
 # Pen slots — horizontal (axis along +X) and vertical (axis along +Y)
 H_SLOTS = CFG["horizontal_slots"]
@@ -98,6 +99,7 @@ def _cut_pen_troughs(
     h_slots: list,
     v_slots: list,
     slot_types: dict,
+    slot_fillet: float = 0.0,
 ) -> cq.Workplane:
     """
     Cut rectangular-prism pen troughs into the top of *body*.
@@ -135,6 +137,9 @@ def _cut_pen_troughs(
             .box(length, width, depth, centered=(True, True, False), combine=False)
             .translate((0, 0, -depth))
         )
+        safe_r = min(slot_fillet, width / 2 - 0.01, length / 2 - 0.01)
+        if safe_r > 0.01:
+            cutter = cutter.edges("|Z").fillet(safe_r)
         body = body.cut(cutter)
 
     # --- Vertical slots (run along +Y) ---
@@ -156,6 +161,9 @@ def _cut_pen_troughs(
             .box(width, length, depth, centered=(True, True, False), combine=False)
             .translate((0, 0, -depth))
         )
+        safe_r = min(slot_fillet, width / 2 - 0.01, length / 2 - 0.01)
+        if safe_r > 0.01:
+            cutter = cutter.edges("|Z").fillet(safe_r)
         body = body.cut(cutter)
 
     return body
@@ -218,6 +226,7 @@ def build_base(
     h_slots: list = H_SLOTS,
     v_slots: list = V_SLOTS,
     slot_types: dict = SLOT_TYPES,
+    slot_fillet: float = SLOT_FILLET,
     magnet_diameter: float = MAGNET_DIAMETER,
     magnet_depth: float = MAGNET_DEPTH,
     magnet_inset: float = MAGNET_INSET,
@@ -225,7 +234,7 @@ def build_base(
 ) -> cq.Workplane:
     """Stage: base with rectangular pen troughs cut from the top and magnet pockets on the bottom."""
     body = _make_box(width, depth, height, fillet)
-    body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots, slot_types)
+    body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots, slot_types, slot_fillet)
     body = _cut_magnet_pockets(body, width, depth, height, magnet_diameter, magnet_depth, magnet_inset)
     return body
 

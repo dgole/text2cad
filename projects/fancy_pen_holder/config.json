@@ -20,7 +20,9 @@
         "inset": 7.5
     },
 
-    "_slot_types_comment": "Reusable slot templates. Each slot in the layout references one of these by type name. Rectangular prism cutouts: width is across the slot, depth is how deep the trough cuts down from the top surface.",
+    "slot_fillet": 2.0,
+
+    "_slot_types_comment": "Reusable slot templates. Each slot in the layout references one of these by type name. Rectangular prism cutouts: width is across the slot, depth is how deep the trough cuts down from the top surface. slot_fillet rounds the vertical edges of every slot.",
     "slot_types": {
         "long": {
             "length": 100.0,
