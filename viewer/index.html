@@ -198,7 +198,7 @@ function loadStl(project, file) {
   emptyEl.style.display = "none";
   statusEl.textContent = "Loading…";
 
-  const url = `/${project}/output/${file}`;
+  const url = `/projects/${project}/output/${file}`;
   new STLLoader().load(
     url,
     (geometry) => {

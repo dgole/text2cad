@@ -29,7 +29,8 @@ class Handler(SimpleHTTPRequestHandler):
         # --- API: list parts and their STL files ---
         if self.path == "/api/parts":
             parts: dict[str, list[str]] = {}
-            for child in sorted(PROJECT_ROOT.iterdir()):
+            projects_dir = PROJECT_ROOT / "projects"
+            for child in sorted(projects_dir.iterdir()):
                 output_dir = child / "output"
                 if child.is_dir() and output_dir.is_dir():
                     stls = sorted(

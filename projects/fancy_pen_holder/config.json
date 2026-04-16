@@ -1,0 +1,25 @@
+{
+    "_comment": "All dimensions in mm. Fancy pen holder — base tray + lid.",
+
+    "body": {
+        "width": 170,
+        "depth": 90,
+        "height": 40,
+        "fillet": 3.0
+    },
+
+    "lid": {
+        "height": 10,
+        "_comment": "Lid shares body width/depth/fillet. Only height differs."
+    },
+
+    "pen_slots": {
+        "count": 2,
+        "diameter": 14.0,
+        "_slot_length": "How far the cylinder extends into the body from the front face (+Y side).",
+        "slot_length": 140.0,
+        "spacing": 30.0,
+        "_offset_x": "X offset of the slot group center from body center.",
+        "offset_x": 0.0
+    }
+}
