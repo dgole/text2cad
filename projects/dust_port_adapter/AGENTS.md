@@ -3,8 +3,8 @@
 ## Description
 
 Clip-on adapter for a Makita circular saw dust exhaust port. The port has an
-irregular quadrilateral flange/rim — not a simple rectangle. The adapter will
-clip onto this rim and connect to a dust collection hose.
+irregular quadrilateral flange/rim — not a simple rectangle. The adapter
+clips onto this rim and connects to a dust collection hose.
 
 ## Files
 
@@ -41,14 +41,9 @@ single source of truth for the rim shape via `config.json`.
 - `reference/reference_part_for_inspo_real.webp` — photo of an existing dust port adapter for a smaller saw (design inspiration)
 - `reference/reference_part_for_inspo_rendered.webp` — rendered view of the same inspiration part
 
-## Parameters
+## Rim shape
 
-All parameters live in [`config.json`](config.json) — the single source of truth.
-CLI flags override config values for one-off tweaks.
-
-### Rim profile
-
-The rim shape is an irregular quadrilateral with 4 mostly-straight sides.
+The rim is an irregular quadrilateral with 4 mostly-straight sides.
 Corner A (bottom-left) has significant rounding; the other 3 are near-90°.
 
 ```
@@ -58,46 +53,9 @@ Corner A (bottom-left) has significant rounding; the other 3 are near-90°.
           A ------ B
 ```
 
-Vertices define the **inner edge** (against the rim). All values in mm.
+Vertices define the **inner edge** (against the rim).
 
-| Config key | Description |
-|------------|-------------|
-| `vertices.A` … `vertices.D` | Corner positions `[x, y]` |
-| `fillets.A` … `fillets.D` | Fillet radius at each corner |
-| `ab_bulge` | Inward curvature (sagitta) of the A→B edge. 0 = straight. |
-| `wall` | Wall thickness (added outward from inner edge) |
+## Parameters
 
-### Profile test
-
-| Config key | Description |
-|------------|-------------|
-| `profile_test.thickness` | Plate extrusion height (Z) for the test piece |
-
-### Faceplate
-
-| Config key | Description |
-|------------|-------------|
-| `faceplate.wall_height` | Height of the walls that wrap around the rim |
-| `faceplate.cap_thickness` | Thickness of the solid cap |
-| `faceplate.screw_x` | Screw hole center X coordinate |
-| `faceplate.screw_y` | Screw hole center Y coordinate |
-| `faceplate.screw_diameter` | Screw hole diameter |
-
-**Vertex positions based on initial measurements — iterating on fit.**
-
-## Usage
-
-```bash
-cd projects/dust_port_adapter
-
-# Profile test piece
-python profile_test.py
-python profile_test.py --wall 3 --fillet-a 10
-python profile_test.py --bx 68 --by 42
-python profile_test.py --ab-bulge 3
-
-# Faceplate
-python faceplate.py
-python faceplate.py --wall-height 8 --cap-thickness 3
-python faceplate.py --screw-diameter 1.5 --screw-x 14 --screw-y 54
-```
+All parameters live in [`config.json`](config.json) — the single source of truth.
+CLI flags override config values for one-off tweaks.

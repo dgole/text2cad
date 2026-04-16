@@ -1,5 +1,8 @@
 {
+    "_comment": "All dimensions in mm. Rim shape is an irregular quadrilateral: A=bottom-left, B=bottom-right, C=top-right, D=top-left.",
+
     "vertices": {
+        "_comment": "Inner edge of the rim (the edge the adapter sits against).",
         "A": [0.0, 0.0],
         "B": [74.5, 38.0],
         "C": [70.5, 58.0],
@@ -11,18 +14,25 @@
         "C": 1.5,
         "D": 1.5
     },
+    "_ab_bulge": "Inward curvature (sagitta) of the A-B edge. 0 = straight.",
     "ab_bulge": 3.0,
+    "_wall": "Wall thickness, added outward from the inner rim edge.",
     "wall": 4.0,
+
     "profile_test": {
+        "_thickness": "Extrusion height (Z) of the flat test piece.",
         "thickness": 2.0
     },
+
     "faceplate": {
+        "_wall_height": "Height of the walls that wrap down over the rim.",
         "wall_height": 6.0,
         "cap_thickness": 2.0,
         "screw_x": 16.0,
         "screw_y": 52.0,
         "screw_diameter": 11.0,
         "port_hole": {
+            "_comment": "Cutout through the cap for dust to pass. Vertices define its outline on the cap face.",
             "A": [5.0, 15.0],
             "B": [65.0, 40.0],
             "C": [65.0, 55.0],

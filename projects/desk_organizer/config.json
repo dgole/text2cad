@@ -1,49 +1,68 @@
 {
-    "_comment": "All dimensions in mm. This is the single source of truth for parameters.",
+    "_comment": "All dimensions in mm.",
 
     "body": {
         "width": 170,
         "depth": 90,
         "height": 140,
         "wall": 3.0,
+        "_fillet": "Radius on vertical edges of the body.",
         "fillet": 2.0
     },
 
     "remote_slots": {
+        "_comment": "Rectangular pockets cut from the top face.",
         "count": 4,
         "width": 30,
         "depth": 80,
         "pocket_depth": 80,
         "spacing": 6,
         "fillet": 3.0,
+        "_offset_x": "X offset of the slot group center from body center.",
         "offset_x": -13
     },
 
     "pen_slots": {
+        "_comment": "Circular holes cut from the top face.",
         "count": 4,
         "diameter": 16,
         "pocket_depth": 80,
+        "_spacing": "Center-to-center distance along Y.",
         "spacing": 20,
+        "_offset_x": "X offset of the pen group center from body center.",
         "offset_x": 70
     },
 
     "split": {
+        "_comment": "Horizontal split for printability. Two halves joined by alignment pins.",
+        "_z": "Z height where the body splits into top and bottom halves.",
         "z": 50,
         "pin_diameter": 6,
+        "_pin_height": "Total pin length — half embeds in each piece.",
         "pin_height": 10,
+        "_pin_clearance": "Extra diameter added to holes for press fit.",
         "pin_clearance": 0.2,
+        "_pin_inset_x": "How far pin centers are inset from X edges.",
         "pin_inset_x": 25,
+        "_pin_inset_y": "How far pin centers are inset from Y edges.",
         "pin_inset_y": 20
     },
 
     "phone_slots": {
+        "_comment": "Thin slots cut through the front face (+X side). Phones slide in long-wise.",
         "count": 2,
+        "_width": "Opening width on the side face (Y span).",
         "width": 80,
+        "_gap_bottom": "Height (Z) of the bottom phone slot.",
         "gap_bottom": 22,
+        "_gap_top": "Height (Z) of the top phone slot.",
         "gap_top": 12,
+        "_interior_length": "How far the phone slot extends into the body (X).",
         "interior_length": 160,
+        "_spacing": "Vertical gap (Z) between stacked phone slots.",
         "spacing": 4,
         "offset_y": 0,
+        "_offset_z": "Z position of the bottom of the lowest slot.",
         "offset_z": 3
     }
 }

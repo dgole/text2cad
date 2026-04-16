@@ -27,7 +27,7 @@ text2cad/
 ├── _template/              Skeleton for new part projects — copy, don't edit
 │   ├── config.json         Parameter defaults (single source of truth)
 │   ├── part.py             Annotated starter script
-│   ├── README.md           Documentation template
+│   ├── AGENTS.md           Documentation template
 │   ├── reference/          For photos
 │   └── output/             For generated STLs
 │
@@ -35,7 +35,7 @@ text2cad/
 │   └── <part_name>/        One directory per part (self-contained)
 │       ├── config.json     Parameter defaults (single source of truth)
 │       ├── part.py         Bespoke parametric script for this part
-│       ├── README.md       Part-specific docs, measurements, stage table
+│       ├── AGENTS.md       Part description, build stages, references
 │       ├── reference/      Reference photos from the human
 │       └── output/         Generated STL files
 │
@@ -50,7 +50,7 @@ text2cad/
    ```
 2. Put any reference images the human provides into `projects/<part_name>/reference/`.
 3. Edit `projects/<part_name>/part.py` — this is the main deliverable. See conventions below.
-4. Add a `projects/<part_name>/README.md` documenting the part, its parameters, and build stages.
+4. Fill in `projects/<part_name>/AGENTS.md` with the part description, build stages, and references.
 
 ## Part script conventions
 
@@ -81,7 +81,22 @@ PORT_HEIGHT = CFG["port_height"]   # mm
 ```
 When a parameter changes, edit `config.json` once — all scripts pick it up.
 CLI flags still override config values for one-off tweaks.
-The README documents what each key *means* but does not duplicate the values.
+
+**`config.json` is self-documenting** — use clear, descriptive key names so
+the file speaks for itself. Do not duplicate parameter names, descriptions,
+or values in AGENTS.md or anywhere else. That just creates multiple places
+to update every time a parameter changes.
+
+For keys where the name alone isn't enough, add a `_key` comment entry
+directly above it in the JSON:
+```json
+{
+    "_ab_bulge": "Inward curvature (sagitta) of the A-B edge. 0 = straight.",
+    "ab_bulge": 3.0
+}
+```
+Use `_comment` for section-level context. Only comment what isn't obvious
+from the key name — don't over-annotate.
 
 ### Staged build functions
 Design parts in testable stages — each stage is a function that returns a
@@ -176,4 +191,4 @@ Run `python viewer/server.py` and open http://localhost:8321 to visually inspect
 ## Git
 
 Commit regularly. STL files are gitignored. Reference images are tracked.
-Part scripts and READMEs are the important artifacts.
+Part scripts and AGENTS.md files are the important artifacts.
