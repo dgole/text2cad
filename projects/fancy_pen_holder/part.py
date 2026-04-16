@@ -3,11 +3,10 @@
 Part: Fancy Pen Holder — base tray + lid
 
 Description:
-    Base: a rectangular prism with horizontal half-cylinder pen troughs
-    cut from the top.  Each trough's cylinder axis runs along X (left
-    to right — the long axis).  The cylinder centre sits at the top
-    surface of the base so only the bottom half is removed — pens rest
-    in the resulting U-shaped channel.
+    Base: a rectangular prism with rectangular pen troughs cut from the
+    top surface.  Each trough is a box cutout whose width and depth are
+    defined by a slot type template in config.json.  Pens rest in the
+    resulting U-shaped channels.
 
     Lid: a plain rectangular prism with the same XY footprint.
 
@@ -54,6 +53,9 @@ BODY_FILLET = CFG["body"]["fillet"]
 # Lid
 LID_HEIGHT = CFG["lid"]["height"]
 
+# Slot types (reusable templates)
+SLOT_TYPES = CFG["slot_types"]
+
 # Pen slots — horizontal (axis along +X) and vertical (axis along +Y)
 H_SLOTS = CFG["horizontal_slots"]
 V_SLOTS = CFG["vertical_slots"]
@@ -82,6 +84,12 @@ def _make_box(
     return body
 
 
+def _resolve_slot(slot: dict, slot_types: dict) -> dict:
+    """Merge a slot entry with its type template to get length/width/depth."""
+    t = slot_types[slot["type"]]
+    return {**slot, "length": t["length"], "width": t["width"], "depth": t["depth"]}
+
+
 def _cut_pen_troughs(
     body: cq.Workplane,
     body_width: float,
@@ -89,59 +97,65 @@ def _cut_pen_troughs(
     body_height: float,
     h_slots: list,
     v_slots: list,
+    slot_types: dict,
 ) -> cq.Workplane:
     """
-    Cut half-cylinder pen troughs into the top of *body*.
+    Cut rectangular-prism pen troughs into the top of *body*.
 
     The body box is centered at the CQ origin, but slots use a
     corner-origin coordinate system where (0, 0) is the bottom-left
     corner of the footprint (min-X, min-Y when viewed from above).
 
-    Each slot dict has: start_x, start_y, length, diameter.
+    Each slot dict has: type, start_x, start_y.  type references a
+    key in slot_types which provides length, width, and depth.
     Horizontal slots run along +X; vertical slots run along +Y.
-    The cylinder center sits at Z = body_height (the top surface) so
-    only the bottom half is material removal.
+    The trough is cut downward from the top surface.
     """
     # Corner-origin to CQ-centered offset
     ox = -body_width / 2
     oy = -body_depth / 2
 
-    # --- Horizontal slots (axis along +X) ---
-    for slot in h_slots:
+    # --- Horizontal slots (run along +X) ---
+    for raw in h_slots:
+        slot = _resolve_slot(raw, slot_types)
         sx = slot["start_x"]
         sy = slot["start_y"]
         length = slot["length"]
-        radius = slot["diameter"] / 2
+        width = slot["width"]
+        depth = slot["depth"]
 
-        cx_start = ox + sx
-        cy = oy + sy
+        # Center of the cutter box in CQ coords
+        cx = ox + sx + length / 2
+        cy = oy + sy + width / 2
 
         cutter = (
-            cq.Workplane("YZ")
-            .center(cy, body_height)
-            .circle(radius)
-            .extrude(length)
+            cq.Workplane("XY")
+            .center(cx, cy)
+            .workplane(offset=body_height)
+            .box(length, width, depth, centered=(True, True, False), combine=False)
+            .translate((0, 0, -depth))
         )
-        cutter = cutter.translate((cx_start, 0, 0))
         body = body.cut(cutter)
 
-    # --- Vertical slots (axis along +Y) ---
-    for slot in v_slots:
+    # --- Vertical slots (run along +Y) ---
+    for raw in v_slots:
+        slot = _resolve_slot(raw, slot_types)
         sx = slot["start_x"]
         sy = slot["start_y"]
         length = slot["length"]
-        radius = slot["diameter"] / 2
+        width = slot["width"]
+        depth = slot["depth"]
 
-        cx = ox + sx
-        cy_start = oy + sy
+        cx = ox + sx + width / 2
+        cy = oy + sy + length / 2
 
         cutter = (
-            cq.Workplane("XZ")
-            .center(cx, body_height)
-            .circle(radius)
-            .extrude(length)
+            cq.Workplane("XY")
+            .center(cx, cy)
+            .workplane(offset=body_height)
+            .box(width, length, depth, centered=(True, True, False), combine=False)
+            .translate((0, 0, -depth))
         )
-        cutter = cutter.translate((0, cy_start + length, 0))
         body = body.cut(cutter)
 
     return body
@@ -203,14 +217,15 @@ def build_base(
     fillet: float = BODY_FILLET,
     h_slots: list = H_SLOTS,
     v_slots: list = V_SLOTS,
+    slot_types: dict = SLOT_TYPES,
     magnet_diameter: float = MAGNET_DIAMETER,
     magnet_depth: float = MAGNET_DEPTH,
     magnet_inset: float = MAGNET_INSET,
     **_kw,
 ) -> cq.Workplane:
-    """Stage: base with half-cylinder pen troughs cut from the top and magnet pockets on the bottom."""
+    """Stage: base with rectangular pen troughs cut from the top and magnet pockets on the bottom."""
     body = _make_box(width, depth, height, fillet)
-    body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots)
+    body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots, slot_types)
     body = _cut_magnet_pockets(body, width, depth, height, magnet_diameter, magnet_depth, magnet_inset)
     return body
 

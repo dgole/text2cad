@@ -2,9 +2,9 @@
     "_comment": "All dimensions in mm. Fancy pen holder — base tray + lid.",
 
     "body": {
-        "width": 185,
-        "depth": 185,
-        "height": 15,
+        "width": 130,
+        "depth": 140,
+        "height": 17,
         "fillet": 3.0
     },
 
@@ -17,102 +17,35 @@
     "magnet_pockets": {
         "diameter": 5.5,
         "depth": 2.5,
-        "inset": 7.0
+        "inset": 7.5
     },
 
-    "_pen_slots_comment": "Origin (0,0) is the bottom-left corner of the body footprint viewed from above. X = left-to-right (width), Y = bottom-to-top (depth). Horizontal slots run along +X, vertical slots run along +Y. Cylinder center sits at the top surface (Z = body height).",
-    "horizontal_slots": [
-        {
-            "start_x": 10.0,
-            "start_y": 22.0,
-            "length": 165.0,
-            "diameter": 18.0
+    "_slot_types_comment": "Reusable slot templates. Each slot in the layout references one of these by type name. Rectangular prism cutouts: width is across the slot, depth is how deep the trough cuts down from the top surface.",
+    "slot_types": {
+        "long": {
+            "length": 100.0,
+            "width": 15.0,
+            "depth": 12.0
         },
-        {
-            "start_x": 10.0,
-            "start_y": 47.0,
-            "length": 105.0,
-            "diameter": 18.0
-        },
-        {
-            "start_x": 10.0,
-            "start_y": 72.0,
-            "length": 105.0,
-            "diameter": 18.0
-        },
-        {
-            "start_x": 10.0,
-            "start_y": 97.0,
-            "length": 105.0,
-            "diameter": 18.0
-        },
-        {
-            "start_x": 120.0,
-            "start_y": 47.0,
-            "length": 55.0,
-            "diameter": 18.0
-        },
-        {
-            "start_x": 120.0,
-            "start_y": 72.0,
-            "length": 55.0,
-            "diameter": 18.0
-        },
-        {
-            "start_x": 120.0,
-            "start_y": 97.0,
-            "length": 55.0,
-            "diameter": 18.0
+        "short": {
+            "length": 70.0,
+            "width": 12.82,
+            "depth": 12.0
         }
+    },
+
+    "_pen_slots_comment": "Origin (0,0) is the bottom-left corner of the body footprint viewed from above. Horizontal slots run along +X, vertical slots run along +Y. type references a key in slot_types.",
+    "horizontal_slots": [
+        { "type": "long",  "start_x": 15.0,  "start_y": 5.0 },
+        { "type": "long",  "start_x": 15.0,  "start_y": 25.0 },
+        { "type": "long",  "start_x": 15.0,  "start_y": 45.0 }
     ],
     "vertical_slots": [
-        {
-            "start_x": 20.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 41.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 62.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 83.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 104.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 125.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 146.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        },
-        {
-            "start_x": 167.0,
-            "start_y": 117.0,
-            "length": 55.0,
-            "diameter": 16.0
-        }
+        { "type": "short", "start_x": 15.0,  "start_y": 65.0 },
+        { "type": "short", "start_x": 32.0,  "start_y": 65.0 },
+        { "type": "short", "start_x": 49.0,  "start_y": 65.0 },
+        { "type": "short", "start_x": 67.0,  "start_y": 65.0 },
+        { "type": "short", "start_x": 85.0,  "start_y": 65.0 },
+        { "type": "short", "start_x": 103.0, "start_y": 65.0 }
     ]
 }
