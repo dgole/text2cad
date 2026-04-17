@@ -52,6 +52,22 @@
     cursor: pointer;
   }
   #toolbar select:focus { outline: 2px solid var(--accent); }
+  #refreshBtn {
+    background: var(--bg);
+    color: var(--accent);
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    padding: 6px 14px;
+    font-size: 14px;
+    cursor: pointer;
+    font-weight: 600;
+    transition: background .15s, border-color .15s;
+  }
+  #refreshBtn:hover {
+    background: var(--border);
+    border-color: var(--accent);
+  }
+  #refreshBtn:active { opacity: .7; }
   #status {
     margin-left: auto;
     font-size: 12px;
@@ -86,6 +102,8 @@
 
   <label for="stlSelect">STL</label>
   <select id="stlSelect"><option value="">…</option></select>
+
+  <button id="refreshBtn" title="Reload current STL">⟳ Refresh</button>
 
   <span id="status"></span>
 </div>
@@ -257,6 +275,14 @@ partSelect.addEventListener("change", () => {
 });
 stlSelect.addEventListener("change", () => {
   loadStl(partSelect.value, stlSelect.value);
+});
+
+document.getElementById("refreshBtn").addEventListener("click", () => {
+  const project = partSelect.value;
+  const file = stlSelect.value;
+  if (project && file) {
+    loadStl(project, file);
+  }
 });
 
 // ---- init ----
