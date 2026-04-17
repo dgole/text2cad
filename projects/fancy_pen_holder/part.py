@@ -8,10 +8,10 @@ Description:
     defined by a slot type template in config.json.  Pens rest in the
     resulting U-shaped channels.
 
-    Lid: a plain rectangular prism with the same XY footprint.
+    Lid: same XY footprint, with magnet pockets on the bottom face
+    that align with the base's top-face pockets.
 
 Usage:
-    python part.py block                # Solid base body — check size
     python part.py base                 # Base with pen troughs
     python part.py lid                  # Lid piece
     python part.py base --width 180      # override body width
@@ -177,8 +177,13 @@ def _cut_magnet_pockets(
     diameter: float,
     depth: float,
     inset: float,
+    face: str = "top",
 ) -> cq.Workplane:
-    """Cut shallow cylindrical magnet pockets into the bottom face at each corner."""
+    """Cut shallow cylindrical magnet pockets at each corner.
+
+    face -- "top" cuts from Z=body_height downward;
+            "bottom" cuts from Z=0 upward.
+    """
     radius = diameter / 2
     hw = body_width / 2
     hd = body_depth / 2
@@ -191,13 +196,21 @@ def _cut_magnet_pockets(
     ]
 
     for cx, cy in corners:
-        cutter = (
-            cq.Workplane("XY")
-            .center(cx, cy)
-            .workplane(offset=body_height)
-            .circle(radius)
-            .extrude(-depth)
-        )
+        if face == "top":
+            cutter = (
+                cq.Workplane("XY")
+                .center(cx, cy)
+                .workplane(offset=body_height)
+                .circle(radius)
+                .extrude(-depth)
+            )
+        else:  # bottom
+            cutter = (
+                cq.Workplane("XY")
+                .center(cx, cy)
+                .circle(radius)
+                .extrude(depth)
+            )
         body = body.cut(cutter)
 
     return body
@@ -206,17 +219,6 @@ def _cut_magnet_pockets(
 # ---------------------------------------------------------------------------
 # Build stages
 # ---------------------------------------------------------------------------
-
-def build_block(
-    width: float = BODY_WIDTH,
-    depth: float = BODY_DEPTH,
-    height: float = BODY_HEIGHT,
-    fillet: float = BODY_FILLET,
-    **_kw,
-) -> cq.Workplane:
-    """Stage: solid base block — check overall size."""
-    return _make_box(width, depth, height, fillet)
-
 
 def build_base(
     width: float = BODY_WIDTH,
@@ -232,7 +234,7 @@ def build_base(
     magnet_inset: float = MAGNET_INSET,
     **_kw,
 ) -> cq.Workplane:
-    """Stage: base with rectangular pen troughs cut from the top and magnet pockets on the bottom."""
+    """Stage: base with rectangular pen troughs and magnet pockets on the top face."""
     body = _make_box(width, depth, height, fillet)
     body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots, slot_types, slot_fillet)
     body = _cut_magnet_pockets(body, width, depth, height, magnet_diameter, magnet_depth, magnet_inset)
@@ -244,10 +246,19 @@ def build_lid(
     depth: float = BODY_DEPTH,
     lid_height: float = LID_HEIGHT,
     fillet: float = BODY_FILLET,
+    magnet_diameter: float = MAGNET_DIAMETER,
+    magnet_depth: float = MAGNET_DEPTH,
+    magnet_inset: float = MAGNET_INSET,
     **_kw,
 ) -> cq.Workplane:
-    """Stage: lid — same XY footprint, shorter height."""
-    return _make_box(width, depth, lid_height, fillet)
+    """Stage: lid — same XY footprint, shorter height, magnet pockets on top (print upside-down)."""
+    body = _make_box(width, depth, lid_height, fillet)
+    body = _cut_magnet_pockets(
+        body, width, depth, lid_height,
+        magnet_diameter, magnet_depth, magnet_inset,
+        face="top",
+    )
+    return body
 
 
 # ---------------------------------------------------------------------------
@@ -255,7 +266,6 @@ def build_lid(
 # ---------------------------------------------------------------------------
 
 STAGES = {
-    "block": build_block,
     "base":  build_base,
     "lid":   build_lid,
 }
