@@ -4,8 +4,11 @@
     "door_thickness": 40.0,
     "wall": 3.0,
 
-    "_lip_height": "How far the front and back walls drop down from the top of the door.",
-    "lip_height": 50.0,
+    "_front_lip_height": "How far the front wall drops down from the top of the door.",
+    "front_lip_height": 80.0,
+
+    "_back_lip_height": "How far the back wall drops down from the top of the door.",
+    "back_lip_height": 50.0,
 
     "width": 100.0,
 

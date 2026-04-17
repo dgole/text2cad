@@ -58,7 +58,8 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 
 DOOR_THICKNESS = CFG["door_thickness"]
 WALL = CFG["wall"]
-LIP_HEIGHT = CFG["lip_height"]
+FRONT_LIP_HEIGHT = CFG["front_lip_height"]
+BACK_LIP_HEIGHT = CFG["back_lip_height"]
 WIDTH = CFG["width"]
 PLATFORM_LENGTH = CFG["platform_length"]
 PLATFORM_THICKNESS = CFG["platform_thickness"]
@@ -73,7 +74,8 @@ FILLET = CFG["fillet"]
 def _build_cross_section(
     door_thickness: float,
     wall: float,
-    lip_height: float,
+    front_lip_height: float,
+    back_lip_height: float,
     platform_length: float,
     platform_thickness: float,
     gap_clearance: float,
@@ -122,36 +124,37 @@ def _build_cross_section(
     """
     gap = door_thickness + gap_clearance
     total_depth = 2 * wall + gap  # front wall + gap + back wall
+    bridge_z = max(front_lip_height, back_lip_height)  # bridge sits at the tallest lip
 
     # We'll build the cross section by creating a single 2D profile using
     # Workplane wire operations. Easier to just union boxes.
 
-    # Front wall
+    # Front wall — bottom at (bridge_z - front_lip_height), top at bridge_z
     front_wall = (
         cq.Workplane("XZ")
-        .box(wall, lip_height, 1, centered=False)
-        .translate((0, 0, 0))
+        .box(wall, front_lip_height, 1, centered=False)
+        .translate((0, bridge_z - front_lip_height, 0))
     )
 
-    # Back wall
+    # Back wall — bottom at (bridge_z - back_lip_height), top at bridge_z
     back_wall = (
         cq.Workplane("XZ")
-        .box(wall, lip_height, 1, centered=False)
-        .translate((wall + gap, 0, 0))
+        .box(wall, back_lip_height, 1, centered=False)
+        .translate((wall + gap, bridge_z - back_lip_height, 0))
     )
 
-    # Bridge — connects tops of front and back walls
+    # Bridge — connects tops of front and back walls at the highest point
     bridge = (
         cq.Workplane("XZ")
         .box(total_depth, wall, 1, centered=False)
-        .translate((0, lip_height - wall, 0))
+        .translate((0, bridge_z - wall, 0))
     )
 
-    # Platform — extends outward from front wall top
+    # Platform — extends outward from front wall top (at bridge level)
     platform = (
         cq.Workplane("XZ")
         .box(platform_length, platform_thickness, 1, centered=False)
-        .translate((-platform_length, lip_height - platform_thickness, 0))
+        .translate((-platform_length, bridge_z - platform_thickness, 0))
     )
 
     section = front_wall.union(back_wall).union(bridge).union(platform)
@@ -161,7 +164,8 @@ def _build_cross_section(
 def _build_hook(
     door_thickness: float,
     wall: float,
-    lip_height: float,
+    front_lip_height: float,
+    back_lip_height: float,
     width: float,
     platform_length: float,
     platform_thickness: float,
@@ -176,34 +180,35 @@ def _build_hook(
     """
     gap = door_thickness + gap_clearance
     total_depth = 2 * wall + gap
+    bridge_z = max(front_lip_height, back_lip_height)  # bridge at tallest lip
 
     # Build each component as a 3D box at full width, then union them.
     # All boxes start at Y=0 and extend to Y=width.
     # X=0 is the outer face of the front wall.
     # Z=0 is the bottom of the lips (lowest point).
 
-    # Front wall: X [0, wall], Z [0, lip_height], Y [0, width]
+    # Front wall: bottom at Z=(bridge_z - front_lip_height), top at Z=bridge_z
     front_wall = (
         cq.Workplane("XY")
-        .box(wall, width, lip_height, centered=False)
-        .translate((0, 0, 0))
+        .box(wall, width, front_lip_height, centered=False)
+        .translate((0, 0, bridge_z - front_lip_height))
     )
 
-    # Back wall: X [wall+gap, 2*wall+gap], Z [0, lip_height], Y [0, width]
+    # Back wall: bottom at Z=(bridge_z - back_lip_height), top at Z=bridge_z
     back_wall = (
         cq.Workplane("XY")
-        .box(wall, width, lip_height, centered=False)
-        .translate((wall + gap, 0, 0))
+        .box(wall, width, back_lip_height, centered=False)
+        .translate((wall + gap, 0, bridge_z - back_lip_height))
     )
 
-    # Bridge: X [0, total_depth], Z [lip_height-wall, lip_height], Y [0, width]
+    # Bridge: X [0, total_depth], Z [bridge_z-wall, bridge_z], Y [0, width]
     bridge = (
         cq.Workplane("XY")
         .box(total_depth, width, wall, centered=False)
-        .translate((0, 0, lip_height - wall))
+        .translate((0, 0, bridge_z - wall))
     )
 
-    # Platform: extends from bottom of front wall outward
+    # Platform: extends from front wall at bridge level outward
     # X [-platform_length, 0], Z [0, platform_thickness], Y [0, width]
     platform = (
         cq.Workplane("XY")
@@ -240,7 +245,8 @@ def _move_to_build_plate(body: cq.Workplane) -> cq.Workplane:
 def build_profile(
     door_thickness: float = DOOR_THICKNESS,
     wall: float = WALL,
-    lip_height: float = LIP_HEIGHT,
+    front_lip_height: float = FRONT_LIP_HEIGHT,
+    back_lip_height: float = BACK_LIP_HEIGHT,
     platform_length: float = PLATFORM_LENGTH,
     platform_thickness: float = PLATFORM_THICKNESS,
     gap_clearance: float = GAP_CLEARANCE,
@@ -256,7 +262,8 @@ def build_profile(
     hook = _build_hook(
         door_thickness=door_thickness,
         wall=wall,
-        lip_height=lip_height,
+        front_lip_height=front_lip_height,
+        back_lip_height=back_lip_height,
         width=test_width,
         platform_length=platform_length,
         platform_thickness=platform_thickness,
@@ -272,7 +279,8 @@ def build_profile(
 def build_full(
     door_thickness: float = DOOR_THICKNESS,
     wall: float = WALL,
-    lip_height: float = LIP_HEIGHT,
+    front_lip_height: float = FRONT_LIP_HEIGHT,
+    back_lip_height: float = BACK_LIP_HEIGHT,
     width: float = WIDTH,
     platform_length: float = PLATFORM_LENGTH,
     platform_thickness: float = PLATFORM_THICKNESS,
@@ -286,7 +294,8 @@ def build_full(
     return _build_hook(
         door_thickness=door_thickness,
         wall=wall,
-        lip_height=lip_height,
+        front_lip_height=front_lip_height,
+        back_lip_height=back_lip_height,
         width=width,
         platform_length=platform_length,
         platform_thickness=platform_thickness,
@@ -321,7 +330,8 @@ def main():
     # Overrides
     parser.add_argument("--door-thickness", type=float, default=DOOR_THICKNESS)
     parser.add_argument("--wall", type=float, default=WALL)
-    parser.add_argument("--lip-height", type=float, default=LIP_HEIGHT)
+    parser.add_argument("--front-lip-height", type=float, default=FRONT_LIP_HEIGHT)
+    parser.add_argument("--back-lip-height", type=float, default=BACK_LIP_HEIGHT)
     parser.add_argument("--width", type=float, default=WIDTH)
     parser.add_argument("--platform-length", type=float, default=PLATFORM_LENGTH)
     parser.add_argument("--platform-thickness", type=float, default=PLATFORM_THICKNESS)
