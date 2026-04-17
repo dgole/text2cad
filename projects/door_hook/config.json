@@ -1,7 +1,7 @@
 {
     "_comment": "All dimensions in mm. Door hook with platform for a portable projector.",
 
-    "door_thickness": 40.0,
+    "door_thickness": 35.0,
     "wall": 3.0,
 
     "_front_lip_height": "How far the front wall drops down from the top of the door.",
