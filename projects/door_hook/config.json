@@ -1,19 +1,22 @@
 {
     "_comment": "All dimensions in mm. Door hook with platform for a portable projector.",
 
-    "door_thickness": 35.0,
+    "door_thickness": 34.0,
     "wall": 3.0,
 
     "_front_lip_height": "How far the front wall drops down from the top of the door.",
-    "front_lip_height": 80.0,
+    "front_lip_height": 180.0,
 
     "_back_lip_height": "How far the back wall drops down from the top of the door.",
     "back_lip_height": 50.0,
 
     "width": 100.0,
 
+    "_front_lip_extension": "How far the front wall continues below the platform attachment point.",
+    "front_lip_extension": 30.0,
+
     "_platform_length": "How far the platform sticks out from the front wall into the room.",
-    "platform_length": 60.0,
+    "platform_length": 100.0,
 
     "_platform_thickness": "Vertical thickness of the platform shelf.",
     "platform_thickness": 3.0,

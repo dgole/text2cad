@@ -59,6 +59,7 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 DOOR_THICKNESS = CFG["door_thickness"]
 WALL = CFG["wall"]
 FRONT_LIP_HEIGHT = CFG["front_lip_height"]
+FRONT_LIP_EXTENSION = CFG["front_lip_extension"]
 BACK_LIP_HEIGHT = CFG["back_lip_height"]
 WIDTH = CFG["width"]
 PLATFORM_LENGTH = CFG["platform_length"]
@@ -165,6 +166,7 @@ def _build_hook(
     door_thickness: float,
     wall: float,
     front_lip_height: float,
+    front_lip_extension: float,
     back_lip_height: float,
     width: float,
     platform_length: float,
@@ -177,6 +179,10 @@ def _build_hook(
     and extruding it along the width (Y axis).
 
     We build with box primitives and boolean union, then extrude to width.
+
+    The front wall has two sections:
+      1. From the bridge down to the platform attachment (front_lip_height).
+      2. Below the platform, continuing down by front_lip_extension.
     """
     gap = door_thickness + gap_clearance
     total_depth = 2 * wall + gap
@@ -185,7 +191,8 @@ def _build_hook(
     # Build each component as a 3D box at full width, then union them.
     # All boxes start at Y=0 and extend to Y=width.
     # X=0 is the outer face of the front wall.
-    # Z=0 is the bottom of the lips (lowest point).
+    # Z=0 is the bottom of the front wall (where platform meets front wall).
+    # Negative Z = below the platform.
 
     # Front wall: bottom at Z=(bridge_z - front_lip_height), top at Z=bridge_z
     front_wall = (
@@ -193,6 +200,15 @@ def _build_hook(
         .box(wall, width, front_lip_height, centered=False)
         .translate((0, 0, bridge_z - front_lip_height))
     )
+
+    # Front lip extension: continues below the platform attachment point
+    if front_lip_extension > 0:
+        front_ext = (
+            cq.Workplane("XY")
+            .box(wall, width, front_lip_extension, centered=False)
+            .translate((0, 0, -front_lip_extension))
+        )
+        front_wall = front_wall.union(front_ext)
 
     # Back wall: bottom at Z=(bridge_z - back_lip_height), top at Z=bridge_z
     back_wall = (
@@ -208,7 +224,7 @@ def _build_hook(
         .translate((0, 0, bridge_z - wall))
     )
 
-    # Platform: extends from front wall at bridge level outward
+    # Platform: extends from front wall at the bottom of the front lip
     # X [-platform_length, 0], Z [0, platform_thickness], Y [0, width]
     platform = (
         cq.Workplane("XY")
@@ -246,6 +262,7 @@ def build_profile(
     door_thickness: float = DOOR_THICKNESS,
     wall: float = WALL,
     front_lip_height: float = FRONT_LIP_HEIGHT,
+    front_lip_extension: float = FRONT_LIP_EXTENSION,
     back_lip_height: float = BACK_LIP_HEIGHT,
     platform_length: float = PLATFORM_LENGTH,
     platform_thickness: float = PLATFORM_THICKNESS,
@@ -263,6 +280,7 @@ def build_profile(
         door_thickness=door_thickness,
         wall=wall,
         front_lip_height=front_lip_height,
+        front_lip_extension=front_lip_extension,
         back_lip_height=back_lip_height,
         width=test_width,
         platform_length=platform_length,
@@ -280,6 +298,7 @@ def build_full(
     door_thickness: float = DOOR_THICKNESS,
     wall: float = WALL,
     front_lip_height: float = FRONT_LIP_HEIGHT,
+    front_lip_extension: float = FRONT_LIP_EXTENSION,
     back_lip_height: float = BACK_LIP_HEIGHT,
     width: float = WIDTH,
     platform_length: float = PLATFORM_LENGTH,
@@ -290,11 +309,14 @@ def build_full(
 ) -> cq.Workplane:
     """
     Stage: full-width hook — the final part.
+    Rotated 90° so the cross-section lies flat on the build plate
+    and the width extrudes upward (same orientation as profile stage).
     """
-    return _build_hook(
+    hook = _build_hook(
         door_thickness=door_thickness,
         wall=wall,
         front_lip_height=front_lip_height,
+        front_lip_extension=front_lip_extension,
         back_lip_height=back_lip_height,
         width=width,
         platform_length=platform_length,
@@ -302,6 +324,9 @@ def build_full(
         gap_clearance=gap_clearance,
         fillet=fillet,
     )
+    hook = hook.rotateAboutCenter((1, 0, 0), -90)
+    hook = _move_to_build_plate(hook)
+    return hook
 
 
 # ---------------------------------------------------------------------------
@@ -331,6 +356,7 @@ def main():
     parser.add_argument("--door-thickness", type=float, default=DOOR_THICKNESS)
     parser.add_argument("--wall", type=float, default=WALL)
     parser.add_argument("--front-lip-height", type=float, default=FRONT_LIP_HEIGHT)
+    parser.add_argument("--front-lip-extension", type=float, default=FRONT_LIP_EXTENSION)
     parser.add_argument("--back-lip-height", type=float, default=BACK_LIP_HEIGHT)
     parser.add_argument("--width", type=float, default=WIDTH)
     parser.add_argument("--platform-length", type=float, default=PLATFORM_LENGTH)
