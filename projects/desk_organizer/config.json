@@ -49,7 +49,7 @@
     "split": {
         "_comment": "Horizontal split for printability. Two halves joined by alignment pins.",
         "_z": "Z height where the body splits into top and bottom halves.",
-        "z": 24,
+        "z": 19,
         "pin_diameter": 6,
         "_pin_height": "Total pin length — half embeds in each piece.",
         "pin_height": 10,
