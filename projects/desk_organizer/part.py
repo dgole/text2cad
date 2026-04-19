@@ -62,21 +62,28 @@ BODY_HEIGHT = CFG["body"]["height"]
 BODY_WALL = CFG["body"]["wall"]
 BODY_FILLET = CFG["body"]["fillet"]
 
-# Remote slots (rectangular top pockets)
-REMOTE_COUNT = CFG["remote_slots"]["count"]
-REMOTE_WIDTH = CFG["remote_slots"]["width"]
-REMOTE_DEPTH = CFG["remote_slots"]["depth"]
-REMOTE_POCKET_DEPTH = CFG["remote_slots"]["pocket_depth"]
-REMOTE_SPACING = CFG["remote_slots"]["spacing"]
-REMOTE_FILLET = CFG["remote_slots"]["fillet"]
-REMOTE_OFFSET_X = CFG["remote_slots"]["offset_x"]
+# Remote slots — long
+REMOTE_LONG_COUNT = CFG["remote_slots_long"]["count"]
+REMOTE_LONG_WIDTH = CFG["remote_slots_long"]["width"]
+REMOTE_LONG_DEPTH = CFG["remote_slots_long"]["depth"]
+REMOTE_LONG_POCKET_DEPTH = CFG["remote_slots_long"]["pocket_depth"]
+REMOTE_LONG_FILLET = CFG["remote_slots_long"]["fillet"]
+
+# Remote slots — short
+REMOTE_SHORT_COUNT = CFG["remote_slots_short"]["count"]
+REMOTE_SHORT_WIDTH = CFG["remote_slots_short"]["width"]
+REMOTE_SHORT_DEPTH = CFG["remote_slots_short"]["depth"]
+REMOTE_SHORT_POCKET_DEPTH = CFG["remote_slots_short"]["pocket_depth"]
+REMOTE_SHORT_FILLET = CFG["remote_slots_short"]["fillet"]
+
+# Remote layout (shared)
+REMOTE_SPACING = CFG["remote_layout"]["spacing"]
+REMOTE_OFFSET_X = CFG["remote_layout"]["offset_x"]
 
 # Pen slots (circular top pockets)
-PEN_COUNT = CFG["pen_slots"]["count"]
 PEN_DIAMETER = CFG["pen_slots"]["diameter"]
 PEN_POCKET_DEPTH = CFG["pen_slots"]["pocket_depth"]
-PEN_SPACING = CFG["pen_slots"]["spacing"]
-PEN_OFFSET_X = CFG["pen_slots"]["offset_x"]
+PEN_POSITIONS = [tuple(p) for p in CFG["pen_slots"]["positions"]]
 
 # Split / alignment pins
 SPLIT_Z = CFG["split"]["z"]
@@ -125,47 +132,64 @@ def _make_box(width: float, depth: float, height: float,
 def _cut_remote_pockets(
     body: cq.Workplane,
     top_z: float,
-    remote_count: int, remote_width: float, remote_depth: float,
-    remote_pocket_depth: float, remote_spacing: float,
-    remote_fillet: float, remote_offset_x: float,
+    remote_long_count: int, remote_long_width: float, remote_long_depth: float,
+    remote_long_pocket_depth: float, remote_long_fillet: float,
+    remote_short_count: int, remote_short_width: float, remote_short_depth: float,
+    remote_short_pocket_depth: float, remote_short_fillet: float,
+    remote_spacing: float, remote_offset_x: float,
 ) -> cq.Workplane:
-    """Cut rectangular remote pockets from the top face of *body*."""
-    total_span = remote_count * remote_width + (remote_count - 1) * remote_spacing
-    start_x = remote_offset_x - total_span / 2 + remote_width / 2
+    """Cut long and short rectangular remote pockets from the top face.
 
-    safe_rf = min(remote_fillet, min(remote_width, remote_depth) / 2 - 0.01)
+    Long slots are laid out first (leftmost), then short slots to their right.
+    The whole group is centered on *remote_offset_x*.
+    """
+    # Build a list of (width, depth, pocket_depth, fillet) for each slot
+    slots = (
+        [(remote_long_width, remote_long_depth, remote_long_pocket_depth, remote_long_fillet)] * remote_long_count
+        + [(remote_short_width, remote_short_depth, remote_short_pocket_depth, remote_short_fillet)] * remote_short_count
+    )
+    total_count = len(slots)
+    if total_count == 0:
+        return body
 
-    for i in range(remote_count):
-        rx = start_x + i * (remote_width + remote_spacing)
+    # All slots use the same width for X-spacing purposes
+    widths = [s[0] for s in slots]
+    total_span = sum(widths) + (total_count - 1) * remote_spacing
+
+    # X position of the left edge of the first slot
+    cursor_x = remote_offset_x - total_span / 2
+
+    for (sw, sd, spd, sf) in slots:
+        rx = cursor_x + sw / 2  # center of this slot
+        safe_rf = min(sf, min(sw, sd) / 2 - 0.01)
         pocket = (
             cq.Workplane("XY")
             .workplane(offset=top_z)
             .center(rx, 0)
-            .rect(remote_width, remote_depth)
-            .extrude(-remote_pocket_depth)
+            .rect(sw, sd)
+            .extrude(-spd)
         )
         if safe_rf > 0.01:
             pocket = pocket.edges("|Z").fillet(safe_rf)
         body = body.cut(pocket)
+        cursor_x += sw + remote_spacing
+
     return body
 
 
 def _cut_pen_pockets(
     body: cq.Workplane,
     top_z: float,
-    pen_count: int, pen_diameter: float,
-    pen_pocket_depth: float, pen_spacing: float,
-    pen_offset_x: float,
+    pen_diameter: float,
+    pen_pocket_depth: float,
+    pen_positions: list,
 ) -> cq.Workplane:
-    """Cut circular pen pockets from the top face of *body*."""
-    start_y = -(pen_count - 1) * pen_spacing / 2
-
-    for i in range(pen_count):
-        py = start_y + i * pen_spacing
+    """Cut circular pen pockets from the top face at explicit (x, y) positions."""
+    for (px, py) in pen_positions:
         pocket = (
             cq.Workplane("XY")
             .workplane(offset=top_z)
-            .center(pen_offset_x, py)
+            .center(px, py)
             .circle(pen_diameter / 2)
             .extrude(-pen_pocket_depth)
         )
@@ -256,30 +280,36 @@ def build_pockets(
     depth: float = BODY_DEPTH,
     height: float = BODY_HEIGHT,
     fillet: float = BODY_FILLET,
-    remote_count: int = REMOTE_COUNT,
-    remote_width: float = REMOTE_WIDTH,
-    remote_depth: float = REMOTE_DEPTH,
-    remote_pocket_depth: float = REMOTE_POCKET_DEPTH,
+    remote_long_count: int = REMOTE_LONG_COUNT,
+    remote_long_width: float = REMOTE_LONG_WIDTH,
+    remote_long_depth: float = REMOTE_LONG_DEPTH,
+    remote_long_pocket_depth: float = REMOTE_LONG_POCKET_DEPTH,
+    remote_long_fillet: float = REMOTE_LONG_FILLET,
+    remote_short_count: int = REMOTE_SHORT_COUNT,
+    remote_short_width: float = REMOTE_SHORT_WIDTH,
+    remote_short_depth: float = REMOTE_SHORT_DEPTH,
+    remote_short_pocket_depth: float = REMOTE_SHORT_POCKET_DEPTH,
+    remote_short_fillet: float = REMOTE_SHORT_FILLET,
     remote_spacing: float = REMOTE_SPACING,
-    remote_fillet: float = REMOTE_FILLET,
     remote_offset_x: float = REMOTE_OFFSET_X,
-    pen_count: int = PEN_COUNT,
     pen_diameter: float = PEN_DIAMETER,
     pen_pocket_depth: float = PEN_POCKET_DEPTH,
-    pen_spacing: float = PEN_SPACING,
-    pen_offset_x: float = PEN_OFFSET_X,
+    pen_positions: list = PEN_POSITIONS,
     **_kw,
 ) -> cq.Workplane:
     """Stage: body with remote & pen pockets cut from the top."""
     body = _make_box(width, depth, height, fillet)
     body = _cut_remote_pockets(
         body, height,
-        remote_count, remote_width, remote_depth,
-        remote_pocket_depth, remote_spacing, remote_fillet, remote_offset_x,
+        remote_long_count, remote_long_width, remote_long_depth,
+        remote_long_pocket_depth, remote_long_fillet,
+        remote_short_count, remote_short_width, remote_short_depth,
+        remote_short_pocket_depth, remote_short_fillet,
+        remote_spacing, remote_offset_x,
     )
     body = _cut_pen_pockets(
         body, height,
-        pen_count, pen_diameter, pen_pocket_depth, pen_spacing, pen_offset_x,
+        pen_diameter, pen_pocket_depth, pen_positions,
     )
     return body
 
@@ -289,18 +319,21 @@ def build_full(
     depth: float = BODY_DEPTH,
     height: float = BODY_HEIGHT,
     fillet: float = BODY_FILLET,
-    remote_count: int = REMOTE_COUNT,
-    remote_width: float = REMOTE_WIDTH,
-    remote_depth: float = REMOTE_DEPTH,
-    remote_pocket_depth: float = REMOTE_POCKET_DEPTH,
+    remote_long_count: int = REMOTE_LONG_COUNT,
+    remote_long_width: float = REMOTE_LONG_WIDTH,
+    remote_long_depth: float = REMOTE_LONG_DEPTH,
+    remote_long_pocket_depth: float = REMOTE_LONG_POCKET_DEPTH,
+    remote_long_fillet: float = REMOTE_LONG_FILLET,
+    remote_short_count: int = REMOTE_SHORT_COUNT,
+    remote_short_width: float = REMOTE_SHORT_WIDTH,
+    remote_short_depth: float = REMOTE_SHORT_DEPTH,
+    remote_short_pocket_depth: float = REMOTE_SHORT_POCKET_DEPTH,
+    remote_short_fillet: float = REMOTE_SHORT_FILLET,
     remote_spacing: float = REMOTE_SPACING,
-    remote_fillet: float = REMOTE_FILLET,
     remote_offset_x: float = REMOTE_OFFSET_X,
-    pen_count: int = PEN_COUNT,
     pen_diameter: float = PEN_DIAMETER,
     pen_pocket_depth: float = PEN_POCKET_DEPTH,
-    pen_spacing: float = PEN_SPACING,
-    pen_offset_x: float = PEN_OFFSET_X,
+    pen_positions: list = PEN_POSITIONS,
     phone_count: int = PHONE_COUNT,
     phone_width: float = PHONE_WIDTH,
     phone_gap_bottom: float = PHONE_GAP_BOTTOM,
@@ -314,13 +347,15 @@ def build_full(
     """Stage: complete organizer (reference — not directly printable)."""
     body = build_pockets(
         width=width, depth=depth, height=height, fillet=fillet,
-        remote_count=remote_count, remote_width=remote_width,
-        remote_depth=remote_depth, remote_pocket_depth=remote_pocket_depth,
-        remote_spacing=remote_spacing, remote_fillet=remote_fillet,
-        remote_offset_x=remote_offset_x,
-        pen_count=pen_count, pen_diameter=pen_diameter,
-        pen_pocket_depth=pen_pocket_depth, pen_spacing=pen_spacing,
-        pen_offset_x=pen_offset_x,
+        remote_long_count=remote_long_count, remote_long_width=remote_long_width,
+        remote_long_depth=remote_long_depth, remote_long_pocket_depth=remote_long_pocket_depth,
+        remote_long_fillet=remote_long_fillet,
+        remote_short_count=remote_short_count, remote_short_width=remote_short_width,
+        remote_short_depth=remote_short_depth, remote_short_pocket_depth=remote_short_pocket_depth,
+        remote_short_fillet=remote_short_fillet,
+        remote_spacing=remote_spacing, remote_offset_x=remote_offset_x,
+        pen_diameter=pen_diameter, pen_pocket_depth=pen_pocket_depth,
+        pen_positions=pen_positions,
     )
     body = _cut_phone_slots(
         body, width,
@@ -397,18 +432,21 @@ def build_top(
     pin_clearance: float = PIN_CLEARANCE,
     pin_inset_x: float = PIN_INSET_X,
     pin_inset_y: float = PIN_INSET_Y,
-    remote_count: int = REMOTE_COUNT,
-    remote_width: float = REMOTE_WIDTH,
-    remote_depth: float = REMOTE_DEPTH,
-    remote_pocket_depth: float = REMOTE_POCKET_DEPTH,
+    remote_long_count: int = REMOTE_LONG_COUNT,
+    remote_long_width: float = REMOTE_LONG_WIDTH,
+    remote_long_depth: float = REMOTE_LONG_DEPTH,
+    remote_long_pocket_depth: float = REMOTE_LONG_POCKET_DEPTH,
+    remote_long_fillet: float = REMOTE_LONG_FILLET,
+    remote_short_count: int = REMOTE_SHORT_COUNT,
+    remote_short_width: float = REMOTE_SHORT_WIDTH,
+    remote_short_depth: float = REMOTE_SHORT_DEPTH,
+    remote_short_pocket_depth: float = REMOTE_SHORT_POCKET_DEPTH,
+    remote_short_fillet: float = REMOTE_SHORT_FILLET,
     remote_spacing: float = REMOTE_SPACING,
-    remote_fillet: float = REMOTE_FILLET,
     remote_offset_x: float = REMOTE_OFFSET_X,
-    pen_count: int = PEN_COUNT,
     pen_diameter: float = PEN_DIAMETER,
     pen_pocket_depth: float = PEN_POCKET_DEPTH,
-    pen_spacing: float = PEN_SPACING,
-    pen_offset_x: float = PEN_OFFSET_X,
+    pen_positions: list = PEN_POSITIONS,
     **_kw,
 ) -> cq.Workplane:
     """
@@ -424,12 +462,15 @@ def build_top(
     # Cut remote & pen pockets from the top (which is at Z = top_height)
     body = _cut_remote_pockets(
         body, top_height,
-        remote_count, remote_width, remote_depth,
-        remote_pocket_depth, remote_spacing, remote_fillet, remote_offset_x,
+        remote_long_count, remote_long_width, remote_long_depth,
+        remote_long_pocket_depth, remote_long_fillet,
+        remote_short_count, remote_short_width, remote_short_depth,
+        remote_short_pocket_depth, remote_short_fillet,
+        remote_spacing, remote_offset_x,
     )
     body = _cut_pen_pockets(
         body, top_height,
-        pen_count, pen_diameter, pen_pocket_depth, pen_spacing, pen_offset_x,
+        pen_diameter, pen_pocket_depth, pen_positions,
     )
 
     # Cut alignment pin holes on the split face (bottom, Z = 0)
@@ -551,18 +592,24 @@ def main():
     parser.add_argument("--fillet", type=float, default=BODY_FILLET,
                         help="Vertical edge fillet radius")
 
-    # Remote slot overrides
-    parser.add_argument("--remote-count", type=int, default=REMOTE_COUNT)
-    parser.add_argument("--remote-width", type=float, default=REMOTE_WIDTH)
-    parser.add_argument("--remote-depth", type=float, default=REMOTE_DEPTH)
-    parser.add_argument("--remote-pocket-depth", type=float, default=REMOTE_POCKET_DEPTH)
+    # Remote slot overrides — long
+    parser.add_argument("--remote-long-count", type=int, default=REMOTE_LONG_COUNT)
+    parser.add_argument("--remote-long-width", type=float, default=REMOTE_LONG_WIDTH)
+    parser.add_argument("--remote-long-depth", type=float, default=REMOTE_LONG_DEPTH)
+    parser.add_argument("--remote-long-pocket-depth", type=float, default=REMOTE_LONG_POCKET_DEPTH)
+
+    # Remote slot overrides — short
+    parser.add_argument("--remote-short-count", type=int, default=REMOTE_SHORT_COUNT)
+    parser.add_argument("--remote-short-width", type=float, default=REMOTE_SHORT_WIDTH)
+    parser.add_argument("--remote-short-depth", type=float, default=REMOTE_SHORT_DEPTH)
+    parser.add_argument("--remote-short-pocket-depth", type=float, default=REMOTE_SHORT_POCKET_DEPTH)
+
+    # Remote layout overrides
     parser.add_argument("--remote-spacing", type=float, default=REMOTE_SPACING)
 
     # Pen slot overrides
-    parser.add_argument("--pen-count", type=int, default=PEN_COUNT)
     parser.add_argument("--pen-diameter", type=float, default=PEN_DIAMETER)
     parser.add_argument("--pen-pocket-depth", type=float, default=PEN_POCKET_DEPTH)
-    parser.add_argument("--pen-spacing", type=float, default=PEN_SPACING)
 
     # Split overrides
     parser.add_argument("--split-z", type=float, default=SPLIT_Z,
