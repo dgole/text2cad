@@ -4,7 +4,7 @@
     "body": {
         "width": 100,
         "depth": 100,
-        "height": 140,
+        "height": 100,
         "wall": 3.0,
         "_fillet": "Radius on vertical edges of the body.",
         "fillet": 2.0
@@ -13,20 +13,20 @@
     "remote_slots": {
         "_comment": "Rectangular pockets cut from the top face.",
         "count": 4,
-        "width": 30,
+        "width": 25,
         "depth": 80,
-        "pocket_depth": 80,
-        "spacing": 6,
+        "pocket_depth": 73,
+        "spacing": 3,
         "fillet": 3.0,
         "_offset_x": "X offset of the slot group center from body center.",
-        "offset_x": -13
+        "offset_x": -10
     },
 
     "pen_slots": {
         "_comment": "Circular holes cut from the top face.",
         "count": 4,
         "diameter": 16,
-        "pocket_depth": 80,
+        "pocket_depth": 73,
         "_spacing": "Center-to-center distance along Y.",
         "spacing": 20,
         "_offset_x": "X offset of the pen group center from body center.",
