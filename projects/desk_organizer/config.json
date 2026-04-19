@@ -2,8 +2,8 @@
     "_comment": "All dimensions in mm.",
 
     "body": {
-        "width": 170,
-        "depth": 90,
+        "width": 100,
+        "depth": 100,
         "height": 140,
         "wall": 3.0,
         "_fillet": "Radius on vertical edges of the body.",
@@ -36,29 +36,29 @@
     "split": {
         "_comment": "Horizontal split for printability. Two halves joined by alignment pins.",
         "_z": "Z height where the body splits into top and bottom halves.",
-        "z": 50,
+        "z": 24,
         "pin_diameter": 6,
         "_pin_height": "Total pin length — half embeds in each piece.",
         "pin_height": 10,
         "_pin_clearance": "Extra diameter added to holes for press fit.",
         "pin_clearance": 0.2,
         "_pin_inset_x": "How far pin centers are inset from X edges.",
-        "pin_inset_x": 25,
+        "pin_inset_x": 10,
         "_pin_inset_y": "How far pin centers are inset from Y edges.",
-        "pin_inset_y": 20
+        "pin_inset_y": 10
     },
 
     "phone_slots": {
         "_comment": "Thin slots cut through the front face (+X side). Phones slide in long-wise.",
-        "count": 2,
+        "count": 1,
         "_width": "Opening width on the side face (Y span).",
-        "width": 80,
+        "width": 60,
         "_gap_bottom": "Height (Z) of the bottom phone slot.",
-        "gap_bottom": 22,
+        "gap_bottom": 16,
         "_gap_top": "Height (Z) of the top phone slot.",
         "gap_top": 12,
         "_interior_length": "How far the phone slot extends into the body (X).",
-        "interior_length": 160,
+        "interior_length": 95,
         "_spacing": "Vertical gap (Z) between stacked phone slots.",
         "spacing": 4,
         "offset_y": 0,
