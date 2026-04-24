@@ -1,0 +1,20 @@
+{
+    "_comment": "All dimensions in mm. Rotating magnetic bezel — two stacked rings with embedded disc magnets.",
+
+    "_magnet_diameter": "Diameter of the cylindrical disc magnets.",
+    "magnet_diameter": 5.0,
+    "magnet_height": 2.0,
+    "_magnet_clearance": "Extra diameter added to pocket for press-fit / glue-in.",
+    "magnet_clearance": 0.2,
+
+    "num_magnets": 12,
+
+    "_ring_od": "Outer diameter of each ring.",
+    "ring_od": 37.0,
+    "_ring_id": "Inner diameter (bore) of each ring.",
+    "ring_id": 21.0,
+    "_ring_height": "Total height of one ring (floor + magnet pocket).",
+    "ring_height": 3.0,
+    "_magnet_floor": "Material thickness under each magnet pocket.",
+    "magnet_floor": 1.0
+}
