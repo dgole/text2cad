@@ -1,15 +1,16 @@
 #!/usr/bin/env python3
 """
-Rotating Bezel — Magnetic detent ring pair
+Rotating Bezel — Magnetic detent ring pair (edge-slot design)
 
 Description:
-    Two stacked rings with evenly-spaced cylindrical magnet pockets.
-    Magnets in each ring attract those in the other, creating snap-to
-    detent positions. Rotate one ring to overcome magnetic force and
-    click into the next position.
+    Two stacked rings with evenly-spaced magnet slots cut into the
+    outer rim. Each slot is a rectangular tunnel open only on the
+    outer edge — magnets slide in radially and are enclosed by a
+    floor and ceiling (1mm each). When the rings are stacked, magnets
+    attract through ~2mm of plastic (1mm per ring).
 
-    Both rings are identical geometry — just flip one upside-down so
-    the pocket openings face each other.
+    Both rings are identical geometry — flip one upside-down so the
+    interface faces meet and magnets align.
 
 Usage:
     python part.py ring                 # Single ring
@@ -57,25 +58,6 @@ MAGNET_FLOOR = CFG["magnet_floor"]
 
 
 # ---------------------------------------------------------------------------
-# Helpers
-# ---------------------------------------------------------------------------
-
-def _magnet_positions(num: int, ring_od: float, ring_id: float) -> list:
-    """
-    Return (x, y) positions for magnets evenly spaced around the ring.
-    Magnets sit on the midline between inner and outer radius.
-    """
-    mid_r = (ring_od / 2 + ring_id / 2) / 2
-    positions = []
-    for i in range(num):
-        angle = 2 * math.pi * i / num
-        x = mid_r * math.cos(angle)
-        y = mid_r * math.sin(angle)
-        positions.append((x, y))
-    return positions
-
-
-# ---------------------------------------------------------------------------
 # Build stages
 # ---------------------------------------------------------------------------
 
@@ -91,16 +73,32 @@ def build_ring(
     **_kw,
 ) -> cq.Workplane:
     """
-    Single ring with magnet pockets.
+    Single ring with edge-slot magnet pockets.
 
-    The ring sits with its base at Z=0. Magnet pockets open on the top
-    face (Z = ring_height). Print with pockets facing up — no supports
-    needed since pockets are simple cylindrical holes.
+    Slots are rectangular tunnels cut radially inward from the outer
+    rim.  Each slot is enclosed top and bottom by magnet_floor walls.
+    The magnet (axis vertical) slides in from the outside edge.
+
+    Print with either face down — no supports needed since slots are
+    enclosed (bridging over 5mm width at 1mm ceiling is fine for FDM).
     """
     outer_r = ring_od / 2
     inner_r = ring_id / 2
-    pocket_d = magnet_diameter + magnet_clearance
-    pocket_depth = magnet_height  # pockets are exactly magnet height
+
+    # Slot dimensions
+    slot_w = magnet_diameter + magnet_clearance   # tangential (circumferential)
+    slot_h = magnet_height                        # Z — snug fit, clamped by floor/ceiling
+    slot_d = magnet_diameter + magnet_clearance   # radial depth into the wall
+    overshoot = 1.0                               # extend cutter past outer rim
+
+    # Radial extents of the cutter box
+    cutter_inner_r = outer_r - slot_d             # inner wall of slot
+    cutter_outer_r = outer_r + overshoot          # past the rim
+    cutter_radial_size = cutter_outer_r - cutter_inner_r
+    cutter_center_r = (cutter_inner_r + cutter_outer_r) / 2
+
+    # Z position — slot centered vertically in the ring
+    slot_z_center = magnet_floor + slot_h / 2
 
     # --- Annular ring body ---
     body = (
@@ -110,17 +108,18 @@ def build_ring(
         .extrude(ring_height)
     )
 
-    # --- Cut magnet pockets from the top face ---
-    positions = _magnet_positions(num_magnets, ring_od, ring_id)
-    for (px, py) in positions:
-        pocket = (
+    # --- Cut magnet slots from the outer rim ---
+    for i in range(num_magnets):
+        angle_deg = 360.0 * i / num_magnets
+
+        cutter = (
             cq.Workplane("XY")
-            .workplane(offset=ring_height)
-            .center(px, py)
-            .circle(pocket_d / 2)
-            .extrude(-pocket_depth)
+            .box(cutter_radial_size, slot_w, slot_h,
+                 centered=(True, True, True))
+            .translate((cutter_center_r, 0, slot_z_center))
+            .rotate((0, 0, 0), (0, 0, 1), angle_deg)
         )
-        body = body.cut(pocket)
+        body = body.cut(cutter)
 
     return body
 
@@ -140,7 +139,6 @@ def build_pair(
     Both rings placed side-by-side for a single print.
 
     Ring A on the left, Ring B on the right, separated by a gap.
-    Both printed with pockets facing up.
     """
     kw = dict(
         ring_od=ring_od, ring_id=ring_id, ring_height=ring_height,
@@ -187,7 +185,7 @@ def main():
     parser.add_argument("--ring-id", type=float, default=RING_ID,
                         help="Ring inner diameter (bore)")
     parser.add_argument("--ring-height", type=float, default=RING_HEIGHT,
-                        help="Ring height (floor + pocket)")
+                        help="Ring height (floor + magnet + ceiling)")
 
     # Magnet overrides
     parser.add_argument("--magnet-diameter", type=float, default=MAGNET_DIAMETER,
@@ -195,7 +193,7 @@ def main():
     parser.add_argument("--magnet-height", type=float, default=MAGNET_HEIGHT,
                         help="Magnet height")
     parser.add_argument("--magnet-clearance", type=float, default=MAGNET_CLEARANCE,
-                        help="Extra pocket diameter for fit")
+                        help="Extra slot width/depth for fit")
     parser.add_argument("--num-magnets", type=int, default=NUM_MAGNETS,
                         help="Number of magnet positions")
 
@@ -203,7 +201,6 @@ def main():
 
     kw = {k.replace("-", "_"): v for k, v in vars(args).items()
           if k not in ("stage", "output_dir")}
-    # Pass magnet_floor through from config (not a CLI flag for now)
     kw["magnet_floor"] = MAGNET_FLOOR
 
     body = STAGES[args.stage](**kw)
