@@ -13,7 +13,8 @@ Description:
     interface faces meet and magnets align.
 
 Usage:
-    python part.py ring                 # Single ring
+    python part.py ring                 # Plain ring (no text)
+    python part.py bezel                # Ring with engraved 1-12 digits
     python part.py pair                 # Both rings side-by-side
     python part.py ring --num-magnets 8 # Override magnet count
 """
@@ -55,6 +56,11 @@ RING_OD = CFG["ring_od"]
 RING_ID = CFG["ring_id"]
 RING_HEIGHT = CFG["ring_height"]
 MAGNET_FLOOR = CFG["magnet_floor"]
+SLOT_DEPTH = CFG["slot_depth"]
+
+BEZEL_EXTRA_HEIGHT = CFG["bezel_extra_height"]
+TEXT_FONT_SIZE = CFG["text_font_size"]
+TEXT_ENGRAVE_DEPTH = CFG["text_engrave_depth"]
 
 
 # ---------------------------------------------------------------------------
@@ -70,6 +76,7 @@ def build_ring(
     magnet_height: float = MAGNET_HEIGHT,
     magnet_clearance: float = MAGNET_CLEARANCE,
     num_magnets: int = NUM_MAGNETS,
+    slot_depth: float = SLOT_DEPTH,
     **_kw,
 ) -> cq.Workplane:
     """
@@ -88,7 +95,7 @@ def build_ring(
     # Slot dimensions
     slot_w = magnet_diameter + magnet_clearance   # tangential (circumferential)
     slot_h = magnet_height                        # Z — snug fit, clamped by floor/ceiling
-    slot_d = magnet_diameter + magnet_clearance   # radial depth into the wall
+    slot_d = slot_depth                           # radial depth into the wall
     overshoot = 1.0                               # extend cutter past outer rim
 
     # Radial extents of the cutter box
@@ -133,6 +140,7 @@ def build_pair(
     magnet_height: float = MAGNET_HEIGHT,
     magnet_clearance: float = MAGNET_CLEARANCE,
     num_magnets: int = NUM_MAGNETS,
+    slot_depth: float = SLOT_DEPTH,
     **_kw,
 ) -> cq.Workplane:
     """
@@ -144,7 +152,7 @@ def build_pair(
         ring_od=ring_od, ring_id=ring_id, ring_height=ring_height,
         magnet_floor=magnet_floor, magnet_diameter=magnet_diameter,
         magnet_height=magnet_height, magnet_clearance=magnet_clearance,
-        num_magnets=num_magnets,
+        num_magnets=num_magnets, slot_depth=slot_depth,
     )
 
     gap = 5.0  # mm between the two rings on the build plate
@@ -156,12 +164,76 @@ def build_pair(
     return ring_a.union(ring_b)
 
 
+def build_bezel(
+    ring_od: float = RING_OD,
+    ring_id: float = RING_ID,
+    ring_height: float = RING_HEIGHT,
+    magnet_floor: float = MAGNET_FLOOR,
+    magnet_diameter: float = MAGNET_DIAMETER,
+    magnet_height: float = MAGNET_HEIGHT,
+    magnet_clearance: float = MAGNET_CLEARANCE,
+    num_magnets: int = NUM_MAGNETS,
+    slot_depth: float = SLOT_DEPTH,
+    bezel_extra_height: float = BEZEL_EXTRA_HEIGHT,
+    text_font_size: float = TEXT_FONT_SIZE,
+    text_engrave_depth: float = TEXT_ENGRAVE_DEPTH,
+    **_kw,
+) -> cq.Workplane:
+    """
+    Ring with 12-hour digits engraved on the top face.
+
+    The ring is taller than the plain version — extra material is added
+    above the magnet ceiling to provide a face for the engraved text.
+    Digits 1-12 are arranged in clock positions at 30-degree intervals.
+    """
+    total_height = ring_height + bezel_extra_height
+
+    # Build the base ring at the taller height
+    body = build_ring(
+        ring_od=ring_od, ring_id=ring_id, ring_height=total_height,
+        magnet_floor=magnet_floor, magnet_diameter=magnet_diameter,
+        magnet_height=magnet_height, magnet_clearance=magnet_clearance,
+        num_magnets=num_magnets, slot_depth=slot_depth,
+    )
+
+    # Text radius — centered on the ring face
+    r_text = (ring_od / 2 + ring_id / 2) / 2
+
+    # Engrave digits 1-12 on the top face
+    for n in range(1, 13):
+        digit = str(n)
+        # Clock angle: 12 at top (+Y), going clockwise
+        clock_deg = -(n % 12) * 30  # rotation from 12-o'clock
+
+        # Create text solid at origin on XY plane
+        # text() extrudes in +Z from the workplane
+        txt = (
+            cq.Workplane("XY")
+            .text(digit, text_font_size, text_engrave_depth,
+                  cut=False, combine=True, font="Arial")
+        )
+
+        # Position: put text at 12-o'clock (0, r_text), then rotate
+        # to final clock position. Text reads left-to-right at each
+        # position, with tops of digits pointing outward from center.
+        txt = (
+            txt
+            .translate((0, r_text, total_height - text_engrave_depth))
+            .rotate((0, 0, 0), (0, 0, 1), clock_deg)
+        )
+
+        body = body.cut(txt)
+
+    return body
+
+
 # ---------------------------------------------------------------------------
 # Stage registry
 # ---------------------------------------------------------------------------
 
 STAGES = {
     "ring": build_ring,
+    "bezel": build_bezel,
     "pair": build_pair,
 }
 
@@ -193,9 +265,11 @@ def main():
     parser.add_argument("--magnet-height", type=float, default=MAGNET_HEIGHT,
                         help="Magnet height")
     parser.add_argument("--magnet-clearance", type=float, default=MAGNET_CLEARANCE,
-                        help="Extra slot width/depth for fit")
+                        help="Extra slot width for fit")
     parser.add_argument("--num-magnets", type=int, default=NUM_MAGNETS,
                         help="Number of magnet positions")
+    parser.add_argument("--slot-depth", type=float, default=SLOT_DEPTH,
+                        help="Radial depth of magnet slot into wall")
 
     args = parser.parse_args()
 

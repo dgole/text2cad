@@ -4,17 +4,26 @@
     "_magnet_diameter": "Diameter of the cylindrical disc magnets.",
     "magnet_diameter": 5.0,
     "magnet_height": 2.0,
-    "_magnet_clearance": "Extra width/depth added to slot for fit. Z is snug (floor + ceiling clamp it).",
+    "_magnet_clearance": "Extra width added to slot for fit. Z is snug (floor + ceiling clamp it).",
     "magnet_clearance": 0.2,
 
     "num_magnets": 12,
 
     "_ring_od": "Outer diameter of each ring.",
-    "ring_od": 37.0,
+    "ring_od": 44.0,
     "_ring_id": "Inner diameter (bore) of each ring.",
-    "ring_id": 21.0,
+    "ring_id": 30.0,
     "_ring_height": "Total height of one ring: magnet_floor + magnet_height + magnet_floor.",
     "ring_height": 4.0,
     "_magnet_floor": "Wall thickness above and below each magnet slot (ceiling and floor).",
-    "magnet_floor": 1.0
+    "magnet_floor": 1.0,
+
+    "_slot_depth": "Radial depth of magnet slot into the wall (open on outer rim).",
+    "slot_depth": 5.5,
+
+    "_bezel_extra_height": "Extra material added on top of one ring for engraved digit face.",
+    "bezel_extra_height": 2.0,
+    "text_font_size": 4.0,
+    "_text_engrave_depth": "How deep the digits are cut into the top face.",
+    "text_engrave_depth": 0.5
 }
