@@ -111,6 +111,7 @@ def build_faceplate(
     port_hole_cx: float = PORT_HOLE_CX, port_hole_cy: float = PORT_HOLE_CY,
     port_hole_dx: float = PORT_HOLE_DX, port_hole_dy: float = PORT_HOLE_DY,
     port_hole_fillet: float = PORT_HOLE_FILLET,
+    flip_for_print: bool = True,
 ) -> cq.Workplane:
     """
     Build the faceplate: walls around the rim + solid cap on top.
@@ -164,11 +165,12 @@ def build_faceplate(
     port_hole_solid = port_hole_solid.translate((0, 0, wall_height - 1))
     result = result.cut(port_hole_solid)
 
-    # Flip upside-down so the cap is on the bottom (print-bed side) and the
-    # walls open upward.  Then shift so the lowest point sits at Z = 0.
-    result = result.rotate((0, 0, 0), (1, 0, 0), 180)
-    bb = result.val().BoundingBox()
-    result = result.translate((0, 0, -bb.zmin))
+    if flip_for_print:
+        # Flip upside-down so the cap is on the bottom (print-bed side) and the
+        # walls open upward.  Then shift so the lowest point sits at Z = 0.
+        result = result.rotate((0, 0, 0), (1, 0, 0), 180)
+        bb = result.val().BoundingBox()
+        result = result.translate((0, 0, -bb.zmin))
 
     return result
 

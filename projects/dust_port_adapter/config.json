@@ -39,5 +39,24 @@
             "D": [30.0, 55.0],
             "fillet_radius": 2.0
         }
+    },
+
+    "transition": {
+        "_hose_od": "Outer diameter of the hose that plugs into the socket.",
+        "hose_od": 35.0,
+        "_hose_tolerance": "Extra clearance added to hose_od for the socket ID.",
+        "hose_tolerance": 0.5,
+        "_socket_depth": "Depth of the female socket (how far the hose inserts).",
+        "socket_depth": 20.0,
+        "_tube_wall": "Wall thickness of the transition tube and elbow.",
+        "tube_wall": 3.0,
+        "_straight_length": "Length of the straight quad-to-circle loft section.",
+        "straight_length": 40.0,
+        "_bend_radius": "Centerline radius of the 90-degree elbow.",
+        "bend_radius": 40.0,
+        "_num_loft_stations": "Number of intermediate cross-sections for the loft.",
+        "num_loft_stations": 16,
+        "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
+        "num_profile_points": 64
     }
 }

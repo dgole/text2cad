@@ -35,6 +35,43 @@ Side view (cross section):
 `faceplate.py` imports geometry helpers from `profile_test.py` — they share a
 single source of truth for the rim shape via `config.json`.
 
+### `adapter.py` — Complete adapter with transition tube
+
+Builds the full adapter: faceplate + transition tube that morphs from the
+irregular port hole to a circular hose connection. Three stages:
+
+- **`loft_test`** — Faceplate + straight transition loft (quad → circle).
+  Verify the cross-section morph looks right.
+- **`elbow_test`** — Faceplate + loft + 90° elbow.
+  Check the bend geometry.
+- **`full`** — Complete adapter: faceplate + loft + elbow + female hose socket.
+
+```
+Side view (cross section):
+
+    walls (open, clip onto saw rim)
+    ┌───┐                 ┌───┐
+    │   │  hollow inside  │   │
+    ├───┴─────────────────┴───┤
+    │█████████████████████████│  ← cap (with port hole + screw hole)
+    ├─────────────────────────┤
+    │   TRANSITION LOFT       │  quad → circle, ~40mm
+    │   (quad cross-section   │
+    │    morphs to circle)    │
+    ├────────○────────────────┤  ← now circular
+    │         ╲               │
+    │    90°   ╲  ELBOW       │  ~40mm bend radius
+    │    bend   ╲             │
+    ├────────────○            │
+    │   SOCKET   │            │  ← female, hose slides in, ~20mm
+    └────────────┘
+
+    Bend direction: toward the A-D edge (left side of faceplate)
+```
+
+Imports `build_faceplate()` from `faceplate.py` and geometry helpers from
+`profile_test.py`. All tube parameters live in `config.json` under `transition`.
+
 ## Reference
 
 - `reference/saw_dust_port_exit_measurement_image.jpg` — photo of the dust port with measurement
