@@ -55,7 +55,7 @@
         "_bend_radius": "Centerline radius of the 90-degree elbow.",
         "bend_radius": 25.0,
         "_bend_direction_deg": "Rotation of bend direction (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge (downward).",
-        "bend_direction_deg": 0.0,
+        "bend_direction_deg": 30.0,
         "_num_loft_stations": "Number of intermediate cross-sections for the loft.",
         "num_loft_stations": 16,
         "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
