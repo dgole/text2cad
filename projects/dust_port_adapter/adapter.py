@@ -382,13 +382,14 @@ def build_elbow(
     exit_dir = (-math.cos(alpha), -math.sin(alpha), 0.0)
 
     # Build a custom plane for the arc path.
-    # The plane contains +Z and the exit direction.
-    # U-axis (workplane X) = exit_dir, V-axis (workplane Y) = +Z
-    # Normal = U × V
-    plane_normal = (-math.sin(alpha), math.cos(alpha), 0.0)
+    # Must match CadQuery's "XZ" workplane convention when alpha=0:
+    #   xDir = +X = (1,0,0),  normal = -Y = (0,-1,0)
+    # Rotated by alpha around Z:
+    plane_xdir = (math.cos(alpha), math.sin(alpha), 0.0)
+    plane_normal = (math.sin(alpha), -math.cos(alpha), 0.0)
     bend_plane = cq.Plane(
         origin=cq.Vector(center_x, center_y, z_start),
-        xDir=cq.Vector(*exit_dir),
+        xDir=cq.Vector(*plane_xdir),
         normal=cq.Vector(*plane_normal),
     )
 
@@ -518,8 +519,8 @@ def build_adapter(
     # 4. Hose socket
     # Elbow exit point and direction (depends on bend_direction_deg)
     exit_dir = (-math.cos(alpha), -math.sin(alpha), 0.0)
-    socket_x = cx + bend_radius * math.cos(alpha)
-    socket_y = cy + bend_radius * math.sin(alpha)
+    socket_x = cx - bend_radius * math.cos(alpha)
+    socket_y = cy - bend_radius * math.sin(alpha)
     socket_z = z_loft_top + bend_radius
     print("  Building hose socket...")
     socket = build_socket(
