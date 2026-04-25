@@ -66,6 +66,7 @@ SOCKET_DEPTH = _tr["socket_depth"]
 TUBE_WALL = _tr["tube_wall"]
 STRAIGHT_LENGTH = _tr["straight_length"]
 BEND_RADIUS = _tr["bend_radius"]
+BEND_DIRECTION_DEG = _tr["bend_direction_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
 
@@ -364,27 +365,42 @@ def build_elbow(
     hose_tolerance: float,
     tube_wall: float,
     bend_radius: float,
+    bend_direction_deg: float = 0.0,
 ) -> cq.Workplane:
     """
-    Build a 90° elbow that curves from +Z direction toward -X direction.
+    Build a 90° elbow that curves from +Z direction toward a configurable
+    direction in the XY plane.
 
-    The elbow starts at (center_x, center_y, z_start) pointing in +Z
-    and ends at (center_x - bend_radius, center_y, z_start + bend_radius)
-    pointing in -X.
+    bend_direction_deg: 0 = toward -X (A-D edge).  Positive rotates the
+    exit direction toward -Y (A-B edge / downward).
     """
     inner_r = (hose_od + hose_tolerance) / 2.0
     outer_r = inner_r + tube_wall
+    alpha = math.radians(bend_direction_deg)
 
-    # 90° arc path in the XZ plane.
-    # Arc goes from (0, 0) to (-R, R) in workplane coords.
-    # Midpoint of the arc at 45°: center of curvature is at (-R, 0).
-    mid_x = -bend_radius + bend_radius * math.cos(math.pi / 4)
-    mid_z = bend_radius * math.sin(math.pi / 4)
+    # Exit direction in the XY plane (rotated from -X toward -Y)
+    exit_dir = (-math.cos(alpha), -math.sin(alpha), 0.0)
+
+    # Build a custom plane for the arc path.
+    # The plane contains +Z and the exit direction.
+    # U-axis (workplane X) = exit_dir, V-axis (workplane Y) = +Z
+    # Normal = U × V
+    plane_normal = (-math.sin(alpha), math.cos(alpha), 0.0)
+    bend_plane = cq.Plane(
+        origin=cq.Vector(center_x, center_y, z_start),
+        xDir=cq.Vector(*exit_dir),
+        normal=cq.Vector(*plane_normal),
+    )
+
+    # 90° arc in the custom plane's 2D coords.
+    # Arc goes from (0, 0) to (-R, R).  Midpoint at 45°.
+    mid_u = -bend_radius + bend_radius * math.cos(math.pi / 4)
+    mid_v = bend_radius * math.sin(math.pi / 4)
 
     path = (
-        cq.Workplane("XZ", origin=(center_x, center_y, z_start))
+        cq.Workplane(bend_plane)
         .moveTo(0, 0)
-        .threePointArc((mid_x, mid_z), (-bend_radius, bend_radius))
+        .threePointArc((mid_u, mid_v), (-bend_radius, bend_radius))
     )
 
     # Annular cross-section perpendicular to path start (+Z direction → XY plane)
@@ -402,37 +418,33 @@ def build_elbow(
 # ---------------------------------------------------------------------------
 
 def build_socket(
-    center_x: float,
-    center_y: float,
-    center_z: float,
+    exit_x: float,
+    exit_y: float,
+    exit_z: float,
+    exit_dir: Tuple[float, float, float],
     hose_od: float,
     hose_tolerance: float,
     tube_wall: float,
     socket_depth: float,
 ) -> cq.Workplane:
     """
-    Build a short cylindrical female socket extending in the -X direction.
+    Build a short cylindrical female socket extending along exit_dir.
 
     The hose slides into this socket.  Inner diameter fits the hose OD.
-    Includes a small chamfer at the entrance to guide the hose in.
     """
     inner_r = (hose_od + hose_tolerance) / 2.0
     outer_r = inner_r + tube_wall
 
-    # Build the socket cylinder extending in -X from the elbow exit.
-    # The elbow exits at (center_x, center_y, center_z) pointing in -X.
-    # We build a cylinder on the YZ plane and extrude in -X.
-    socket_end_x = center_x - socket_depth
-    outer_cyl = (
-        cq.Workplane("YZ", origin=(socket_end_x, center_y, center_z))
-        .circle(outer_r)
-        .extrude(socket_depth)
+    # Build a workplane perpendicular to the exit direction.
+    # Use +Z as the xDir (perpendicular to exit_dir which is in XY plane).
+    socket_plane = cq.Plane(
+        origin=cq.Vector(exit_x, exit_y, exit_z),
+        xDir=cq.Vector(0, 0, 1),
+        normal=cq.Vector(*exit_dir),
     )
-    inner_cyl = (
-        cq.Workplane("YZ", origin=(socket_end_x, center_y, center_z))
-        .circle(inner_r)
-        .extrude(socket_depth)
-    )
+
+    outer_cyl = cq.Workplane(socket_plane).circle(outer_r).extrude(socket_depth)
+    inner_cyl = cq.Workplane(socket_plane).circle(inner_r).extrude(socket_depth)
 
     return outer_cyl.cut(inner_cyl)
 
@@ -449,6 +461,7 @@ def build_adapter(
     tube_wall: float = TUBE_WALL,
     straight_length: float = STRAIGHT_LENGTH,
     bend_radius: float = BEND_RADIUS,
+    bend_direction_deg: float = BEND_DIRECTION_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
 ) -> cq.Workplane:
@@ -485,6 +498,7 @@ def build_adapter(
 
     # 3. 90° elbow
     z_loft_top = z_cap_top + straight_length
+    alpha = math.radians(bend_direction_deg)
     print("  Building 90° elbow...")
     elbow = build_elbow(
         center_x=cx,
@@ -494,6 +508,7 @@ def build_adapter(
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
         bend_radius=bend_radius,
+        bend_direction_deg=bend_direction_deg,
     )
     result = result.union(elbow)
 
@@ -501,14 +516,17 @@ def build_adapter(
         return _orient_for_print(result)
 
     # 4. Hose socket
-    # Elbow exit point: (cx - bend_radius, cy, z_loft_top + bend_radius)
-    socket_x = cx - bend_radius
+    # Elbow exit point and direction (depends on bend_direction_deg)
+    exit_dir = (-math.cos(alpha), -math.sin(alpha), 0.0)
+    socket_x = cx + bend_radius * math.cos(alpha)
+    socket_y = cy + bend_radius * math.sin(alpha)
     socket_z = z_loft_top + bend_radius
     print("  Building hose socket...")
     socket = build_socket(
-        center_x=socket_x,
-        center_y=cy,
-        center_z=socket_z,
+        exit_x=socket_x,
+        exit_y=socket_y,
+        exit_z=socket_z,
+        exit_dir=exit_dir,
         hose_od=hose_od,
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
@@ -560,6 +578,8 @@ def main():
     parser.add_argument("--tube-wall", type=float, default=TUBE_WALL)
     parser.add_argument("--straight-length", type=float, default=STRAIGHT_LENGTH)
     parser.add_argument("--bend-radius", type=float, default=BEND_RADIUS)
+    parser.add_argument("--bend-direction-deg", type=float, default=BEND_DIRECTION_DEG,
+                        help="Bend direction (degrees). 0=toward A-D edge, positive=toward A-B.")
     parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
     parser.add_argument("--num-points", type=int, default=NUM_PROFILE_POINTS)
 
@@ -574,6 +594,7 @@ def main():
         tube_wall=args.tube_wall,
         straight_length=args.straight_length,
         bend_radius=args.bend_radius,
+        bend_direction_deg=args.bend_direction_deg,
         num_stations=args.num_stations,
         num_points=args.num_points,
     )
