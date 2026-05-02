@@ -8,8 +8,8 @@
     "_cavity_taper": "Per-side inward offset at cavity floor. Top=70, bottom=60 means taper=5.",
     "cavity_taper": 10.0,
     "fillet_outer": 3.0,
-    "fillet_inner": 1.5,
-    "fillet_inner_vertical": 2.0,
+    "fillet_inner": 8.0,
+    "fillet_inner_vertical": 12.0,
     "magnet_diameter": 8.0,
     "_magnet_height": "Thickness of disc magnet — goes through the wall thickness direction.",
     "magnet_height": 2.0,
@@ -24,6 +24,6 @@
     "key_depth": 1.0,
     "key_width": 3.0,
     "_key_height": "Height from box bottom. Feature stops here; tiny overhang at transition.",
-    "key_height": 15.0,
+    "key_height": 10.0,
     "key_clearance": 0.2
 }

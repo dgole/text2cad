@@ -115,13 +115,15 @@ def block(
             .cutBlind(-cavity_z, taper=taper_angle)
         )
 
-    # Round interior bottom edges (floor-to-wall transition)
+    # Round interior bottom edges (floor-to-wall transition).
+    # Select only straight edges — the curved arcs from the
+    # 2D sketch fillet cannot be 3D-filleted by OCCT.
     if fillet_inner > 0:
         floor_z = -body_z / 2 + floor
         result = (
             result
             .faces(cq.NearestToPointSelector((0, 0, floor_z)))
-            .edges()
+            .edges("%Line")
             .fillet(fillet_inner)
         )
 
