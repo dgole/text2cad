@@ -50,6 +50,14 @@ class Handler(SimpleHTTPRequestHandler):
 
         super().do_GET()
 
+    def end_headers(self):
+        # Prevent caching of STL files so the viewer always loads fresh geometry.
+        if self.path and ".stl" in self.path.lower():
+            self.send_header("Cache-Control", "no-store, no-cache, must-revalidate, max-age=0")
+            self.send_header("Pragma", "no-cache")
+            self.send_header("Expires", "0")
+        super().end_headers()
+
 
 def main():
     server = HTTPServer(("127.0.0.1", PORT), Handler)
