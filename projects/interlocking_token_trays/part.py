@@ -284,12 +284,12 @@ def _add_key_features(
     result: cq.Workplane,
     body_x: float, body_y: float, body_z: float,
     key_depth: float, key_width: float, key_height: float,
-    key_clearance: float,
+    key_clearance: float, key_fillet: float = 0.3,
 ) -> cq.Workplane:
     """Add ridge/groove polarity keying to the outer walls.
 
     Ridges (male) on ±X walls, grooves (female) on ±Y walls.
-    Cylindrical profiles with filleted dome tops.
+    Cylindrical profiles with filleted dome tops and blended wall junctions.
     Features run from the box bottom up to key_height.
     """
     bot_z = -body_z / 2
@@ -312,6 +312,16 @@ def _add_key_features(
         ridge = ridge.faces(">Z").edges().fillet(fillet_r)
         result = result.union(ridge)
 
+        # Blend the wall junction edges
+        if key_fillet > 0:
+            face_pt = (sign * (body_x / 2), 0, key_mid_z)
+            result = (
+                result
+                .faces(cq.NearestToPointSelector(face_pt))
+                .edges("%Circle")
+                .fillet(key_fillet)
+            )
+
     # --- Grooves on ±Y walls (female / South polarity) ---
     groove_r = radius + key_clearance / 2
     groove_inset = groove_r - (key_depth + key_clearance)
@@ -325,6 +335,16 @@ def _add_key_features(
         # Fillet the top of the groove cut too
         groove = groove.faces(">Z").edges().fillet(fillet_r)
         result = result.cut(groove)
+
+        # Blend the groove junction edges
+        if key_fillet > 0:
+            face_pt = (0, sign * (body_y / 2), key_mid_z)
+            result = (
+                result
+                .faces(cq.NearestToPointSelector(face_pt))
+                .edges("%Circle")
+                .fillet(key_fillet)
+            )
 
     return result
 
