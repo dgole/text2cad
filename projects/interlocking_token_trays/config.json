@@ -2,7 +2,7 @@
     "_comment": "All dimensions in mm. Shared by all scripts in this project.",
     "body_x": 80.0,
     "body_y": 80.0,
-    "body_z": 30.0,
+    "body_z": 28.0,
     "wall_thickness": 2.0,
     "floor_thickness": 2.0,
     "_cavity_taper": "Per-side inward offset at cavity floor. Top=70, bottom=60 means taper=5.",
@@ -25,5 +25,17 @@
     "key_width": 3.0,
     "_key_height": "Height from box bottom. Feature stops here; tiny overhang at transition.",
     "key_height": 10.0,
-    "key_clearance": 0.2
+    "key_clearance": 0.2,
+
+    "_comment_holder": "Holder — open-top box for a vertical stack of trays.",
+    "holder_num_trays": 8,
+    "holder_wall": 2.5,
+    "holder_floor": 5.0,
+    "holder_fit_clearance": 0.5,
+    "holder_fillet": 3.0,
+    "_holder_relief": "Finger-relief cutouts on ±Y walls. relief_base = wall height above floor left intact.",
+    "holder_relief_width": 40.0,
+    "holder_relief_base": 20.0,
+    "holder_relief_depth": 15.0,
+    "holder_relief_fillet": 5.0
 }
