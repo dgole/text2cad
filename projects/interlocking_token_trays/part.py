@@ -263,18 +263,17 @@ def _pause_z_abs(**kwargs) -> float:
 
 
 def tray_bottom(**kwargs) -> cq.Workplane:
-    """Bottom half of the tray (below pause height) — pockets are open for inspection."""
+    """Bottom half of the keyed tray (below pause height) — pockets and keys visible."""
     z = _pause_z_abs(**kwargs)
-    full = tray(**kwargs)
+    full = tray_keyed(**kwargs)
     bottom, _ = _split_at_z(full, z)
     return bottom
 
 
 def tray_top(**kwargs) -> cq.Workplane:
-    """Top half of the tray (above pause height) — the sealing cap."""
+    """Top half of the keyed tray (above pause height) — the sealing cap."""
     z = _pause_z_abs(**{k: v for k, v in kwargs.items()})
-    # Need a fresh copy of kwargs since tray() pops keys
-    full = tray(**kwargs)
+    full = tray_keyed(**kwargs)
     _, top = _split_at_z(full, z)
     return top
 
