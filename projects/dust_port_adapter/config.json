@@ -50,21 +50,15 @@
         "socket_depth": 20.0,
         "_tube_wall": "Wall thickness of the transition tube.",
         "tube_wall": 3.0,
-        "_tube_length": "Length of the initial bend section — quad to circle morph (mm). Shorter = sharper bend.",
-        "tube_length": 15.0,
-        "_exit_angle_deg": "Angle after the first bend from vertical (degrees). 65 = steep diagonal.",
-        "exit_angle_deg": 65.0,
+        "_tube_length": "Length of the transition tube along its centerline path (mm).",
+        "tube_length": 60.0,
+        "_exit_angle_deg": "Angle of the tube exit from vertical (degrees). 45 = diagonal, 90 = horizontal.",
+        "exit_angle_deg": 80.0,
         "_exit_direction_deg": "Horizontal direction the tube points (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge.",
         "exit_direction_deg": 40.0,
-        "_straight_length": "Length of the straight middle section at exit_angle (mm). 0 = no straight section.",
-        "straight_length": 30.0,
-        "_redirect_length": "Length of the final bend toward final_angle (mm). 0 = no redirect.",
-        "redirect_length": 15.0,
-        "_final_angle_deg": "Final exit angle from vertical after the redirect (degrees). 80 = nearly horizontal.",
-        "final_angle_deg": 80.0,
-        "_num_loft_stations": "Number of intermediate cross-sections per section.",
-        "num_loft_stations": 8,
+        "_num_loft_stations": "Number of intermediate cross-sections along the tube.",
+        "num_loft_stations": 16,
         "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
-        "num_profile_points": 24
+        "num_profile_points": 32
     }
 }
