@@ -293,27 +293,25 @@ def _rodrigues_rotate(
     )
 
 
-def build_angled_transition(
+def build_tube_path(
     port_hole_verts: List[Tuple[float, float]],
     port_hole_fillet: float,
     hose_od: float,
     hose_tolerance: float,
     tube_wall: float,
-    tube_length: float,
-    exit_angle_deg: float,
     exit_direction_deg: float,
-    num_stations: int,
     num_points: int,
     z_base: float,
+    segments: List[Tuple[float, float, int]],
 ) -> Tuple[cq.Workplane, Tuple[float, float, float], Tuple[float, float, float]]:
     """
-    Build a straight angled transition from port hole quad to hose circle.
+    Build the entire tube as one continuous loft through multiple segments.
 
-    The tube goes in a straight line at exit_angle from vertical.  Cross-sections
-    gradually tilt from flat (flush with the faceplate cap at the base) to
-    perpendicular to the path at the exit.  The shape morphs from quad to circle.
-
-    First wire is flat in XY → connects flush to the faceplate, no gap.
+    segments: list of (length_mm, end_angle_deg, num_stations).
+        The first segment morphs from the port hole quad to a circle.
+        Subsequent segments are circle-to-circle (no shape change).
+        Each segment tilts from the previous segment's end angle to its
+        own end_angle.  The initial tilt is 0 (flat, flush with faceplate).
 
     Returns:
         (solid, exit_point, exit_direction)
@@ -322,95 +320,117 @@ def build_angled_transition(
     cx, cy = centroid
     inner_radius = (hose_od + hose_tolerance) / 2.0
     outer_radius = inner_radius + tube_wall
-
-    exit_angle = math.radians(exit_angle_deg)
     alpha = math.radians(exit_direction_deg)
 
-    # Horizontal direction the tube angles toward
     d_horiz = (-math.cos(alpha), -math.sin(alpha), 0.0)
-
-    # Path direction (straight line from base to exit)
-    path_dir = (
-        math.sin(exit_angle) * d_horiz[0],
-        math.sin(exit_angle) * d_horiz[1],
-        math.cos(exit_angle),
-    )
-
-    # Binormal: perpendicular to the tilt plane (for Rodrigues rotation)
     binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
 
-    # Sample the port hole quad (inner and outer)
-    inner_quad = _sample_quad_outline(
-        port_hole_verts, port_hole_fillet, num_points,
-    )
+    # Sample port hole quad
+    inner_quad = _sample_quad_outline(port_hole_verts, port_hole_fillet, num_points)
     outer_quad = _offset_quad_outline(
         port_hole_verts, port_hole_fillet, tube_wall, num_points, centroid,
     )
 
     # Align circle sampling with first quad point
     first_quad_pt = inner_quad[0]
-    circle_start = math.atan2(
-        first_quad_pt[1] - cy,
-        first_quad_pt[0] - cx,
-    )
+    circle_start = math.atan2(first_quad_pt[1] - cy, first_quad_pt[0] - cx)
     inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start)
     outer_circle = _sample_circle(cx, cy, outer_radius, num_points, circle_start)
 
-    # --- Build wires at each station ---
+    # --- Walk through all segments, building wires ---
     outer_wires = []
     inner_wires = []
-    for i in range(num_stations + 1):
-        t = i / num_stations  # 0 at base, 1 at exit
 
-        # Center position: linear interpolation along path
-        pos = (
-            cx + t * tube_length * path_dir[0],
-            cy + t * tube_length * path_dir[1],
-            z_base + t * tube_length * path_dir[2],
+    # Current state
+    cur_pos = [cx, cy, z_base]
+    cur_angle = 0.0  # radians, starts flat
+
+    for seg_idx, (seg_len, end_angle_deg, seg_stations) in enumerate(segments):
+        end_angle = math.radians(end_angle_deg)
+        start_angle = cur_angle
+
+        # Average direction for this segment's center path
+        avg_angle = (start_angle + end_angle) / 2.0
+        avg_dir = (
+            math.sin(avg_angle) * d_horiz[0],
+            math.sin(avg_angle) * d_horiz[1],
+            math.cos(avg_angle),
         )
 
-        # Tilt: 0 (flat) at base → exit_angle at exit
-        tilt = t * exit_angle
+        # First segment: morph quad→circle.  Others: circle only.
+        is_first = (seg_idx == 0)
 
-        # Interpolate 2D cross-section (quad→circle)
-        outer_pts_2d = [
-            ((1 - t) * oq[0] + t * oc[0], (1 - t) * oq[1] + t * oc[1])
-            for oq, oc in zip(outer_quad, outer_circle)
+        # Skip i=0 for segments after the first (shared boundary wire)
+        i_start = 0 if seg_idx == 0 else 1
+
+        for i in range(i_start, seg_stations + 1):
+            t_seg = i / seg_stations  # 0→1 within this segment
+
+            # Position along this segment's centerline
+            pos = (
+                cur_pos[0] + t_seg * seg_len * avg_dir[0],
+                cur_pos[1] + t_seg * seg_len * avg_dir[1],
+                cur_pos[2] + t_seg * seg_len * avg_dir[2],
+            )
+
+            # Tilt interpolates within this segment
+            tilt = start_angle + t_seg * (end_angle - start_angle)
+
+            if is_first:
+                # Morph from quad to circle
+                outer_pts_2d = [
+                    ((1 - t_seg) * oq[0] + t_seg * oc[0],
+                     (1 - t_seg) * oq[1] + t_seg * oc[1])
+                    for oq, oc in zip(outer_quad, outer_circle)
+                ]
+                inner_pts_2d = [
+                    ((1 - t_seg) * iq[0] + t_seg * ic[0],
+                     (1 - t_seg) * iq[1] + t_seg * ic[1])
+                    for iq, ic in zip(inner_quad, inner_circle)
+                ]
+            else:
+                # Circle cross-section (already centered at cx, cy)
+                outer_pts_2d = list(outer_circle)
+                inner_pts_2d = list(inner_circle)
+
+            # Transform 2D → 3D: subtract centroid, rotate by -tilt, translate
+            def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
+                pts_3d = []
+                for px, py in pts_2d:
+                    dx, dy = px - cx, py - cy
+                    rx, ry, rz = _rodrigues_rotate((dx, dy, 0.0), binormal, -tilt)
+                    pts_3d.append((pos[0] + rx, pos[1] + ry, pos[2] + rz))
+                return pts_3d
+
+            outer_wires.append(_make_wire_from_points_3d(transform(outer_pts_2d)))
+            inner_wires.append(_make_wire_from_points_3d(transform(inner_pts_2d)))
+
+        # Advance current position and angle
+        cur_pos = [
+            cur_pos[0] + seg_len * avg_dir[0],
+            cur_pos[1] + seg_len * avg_dir[1],
+            cur_pos[2] + seg_len * avg_dir[2],
         ]
-        inner_pts_2d = [
-            ((1 - t) * iq[0] + t * ic[0], (1 - t) * iq[1] + t * ic[1])
-            for iq, ic in zip(inner_quad, inner_circle)
-        ]
+        cur_angle = end_angle
 
-        # Transform 2D → 3D: subtract centroid, rotate by -tilt, translate
-        def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
-            pts_3d = []
-            for px, py in pts_2d:
-                dx, dy = px - cx, py - cy
-                rx, ry, rz = _rodrigues_rotate((dx, dy, 0.0), binormal, -tilt)
-                pts_3d.append((pos[0] + rx, pos[1] + ry, pos[2] + rz))
-            return pts_3d
-
-        outer_wires.append(_make_wire_from_points_3d(transform(outer_pts_2d)))
-        inner_wires.append(_make_wire_from_points_3d(transform(inner_pts_2d)))
-
-    # --- Loft outer and inner shells ---
+    # --- One loft for the entire tube ---
     outer_solid = cq.Solid.makeLoft(outer_wires)
     inner_solid = cq.Solid.makeLoft(inner_wires)
 
-    # Hollow tube = outer - inner
     result = cq.Workplane("XY").add(outer_solid).cut(
         cq.Workplane("XY").add(inner_solid)
     ).solids()
 
-    # --- Exit geometry ---
-    exit_point = (
-        cx + tube_length * path_dir[0],
-        cy + tube_length * path_dir[1],
-        z_base + tube_length * path_dir[2],
+    # Exit geometry
+    final_angle = cur_angle
+    exit_point = tuple(cur_pos)
+    exit_dir = (
+        math.sin(final_angle) * d_horiz[0],
+        math.sin(final_angle) * d_horiz[1],
+        math.cos(final_angle),
     )
 
-    return result, exit_point, path_dir
+    return result, exit_point, exit_dir
 
 
 def _make_wire_from_points_3d(
@@ -423,102 +443,6 @@ def _make_wire_from_points_3d(
         p2 = cq.Vector(*points_3d[(i + 1) % len(points_3d)])
         edges.append(cq.Edge.makeLine(p1, p2))
     return cq.Wire.assembleEdges(edges)
-
-
-# ---------------------------------------------------------------------------
-# Redirect builder: bends circle-to-circle toward final angle
-# ---------------------------------------------------------------------------
-
-def build_redirect(
-    start_point: Tuple[float, float, float],
-    start_angle_deg: float,
-    final_angle_deg: float,
-    exit_direction_deg: float,
-    redirect_length: float,
-    hose_od: float,
-    hose_tolerance: float,
-    tube_wall: float,
-    num_stations: int,
-    num_points: int,
-) -> Tuple[cq.Workplane, Tuple[float, float, float], Tuple[float, float, float]]:
-    """
-    Build a circular-cross-section tube that bends from start_angle to final_angle.
-
-    Same approach as build_angled_transition but simpler: circle in, circle out,
-    no shape morphing — just a direction change.
-
-    Returns:
-        (solid, exit_point, exit_direction)
-    """
-    inner_radius = (hose_od + hose_tolerance) / 2.0
-    outer_radius = inner_radius + tube_wall
-
-    start_angle = math.radians(start_angle_deg)
-    final_angle = math.radians(final_angle_deg)
-    alpha = math.radians(exit_direction_deg)
-
-    d_horiz = (-math.cos(alpha), -math.sin(alpha), 0.0)
-    binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
-
-    # Average path direction for center placement
-    avg_angle = (start_angle + final_angle) / 2.0
-    avg_dir = (
-        math.sin(avg_angle) * d_horiz[0],
-        math.sin(avg_angle) * d_horiz[1],
-        math.cos(avg_angle),
-    )
-
-    # Sample circles
-    inner_circle = _sample_circle(0, 0, inner_radius, num_points, 0)
-    outer_circle = _sample_circle(0, 0, outer_radius, num_points, 0)
-
-    sx, sy, sz = start_point
-
-    outer_wires = []
-    inner_wires = []
-    for i in range(num_stations + 1):
-        t = i / num_stations
-
-        # Tilt interpolates from start_angle to final_angle
-        tilt = start_angle + t * (final_angle - start_angle)
-
-        # Center position along the average direction
-        pos = (
-            sx + t * redirect_length * avg_dir[0],
-            sy + t * redirect_length * avg_dir[1],
-            sz + t * redirect_length * avg_dir[2],
-        )
-
-        def transform(circle_pts: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
-            pts_3d = []
-            for px, py in circle_pts:
-                rx, ry, rz = _rodrigues_rotate((px, py, 0.0), binormal, -tilt)
-                pts_3d.append((pos[0] + rx, pos[1] + ry, pos[2] + rz))
-            return pts_3d
-
-        outer_wires.append(_make_wire_from_points_3d(transform(outer_circle)))
-        inner_wires.append(_make_wire_from_points_3d(transform(inner_circle)))
-
-    outer_solid = cq.Solid.makeLoft(outer_wires)
-    inner_solid = cq.Solid.makeLoft(inner_wires)
-
-    result = cq.Workplane("XY").add(outer_solid).cut(
-        cq.Workplane("XY").add(inner_solid)
-    ).solids()
-
-    # Exit geometry
-    final_dir = (
-        math.sin(final_angle) * d_horiz[0],
-        math.sin(final_angle) * d_horiz[1],
-        math.cos(final_angle),
-    )
-    exit_point = (
-        sx + redirect_length * avg_dir[0],
-        sy + redirect_length * avg_dir[1],
-        sz + redirect_length * avg_dir[2],
-    )
-
-    return result, exit_point, final_dir
 
 
 # ---------------------------------------------------------------------------
@@ -585,78 +509,40 @@ def build_adapter(
 ) -> cq.Workplane:
     """Build the adapter at the specified stage."""
 
-    # Z coordinate of the top of the faceplate cap (in build orientation)
     z_cap_top = WALL_HEIGHT + CAP_THICKNESS
 
-    # 1. Faceplate (no flip — we flip the whole assembly at the end)
+    # 1. Faceplate
     print("  Building faceplate...")
     result = build_faceplate(flip_for_print=False)
 
-    # 2. Angled transition / first bend (quad → circle)
-    print("  Building first bend...")
-    transition, exit_point, exit_dir = build_angled_transition(
+    # 2. Build the entire tube as one continuous loft
+    #    Segments: (length, end_angle_deg, num_stations)
+    segments = [
+        (tube_length, exit_angle_deg, num_stations),  # first bend (quad→circle)
+    ]
+    if straight_length > 0:
+        segments.append((straight_length, exit_angle_deg, 4))  # straight pipe
+    if redirect_length > 0 and stage != "transition_test":
+        segments.append((redirect_length, final_angle_deg, max(num_stations // 2, 4)))
+
+    print("  Building tube path...")
+    tube, exit_point, exit_dir = build_tube_path(
         port_hole_verts=PORT_HOLE_VERTS,
         port_hole_fillet=PORT_HOLE_FILLET,
         hose_od=hose_od,
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
-        tube_length=tube_length,
-        exit_angle_deg=exit_angle_deg,
         exit_direction_deg=exit_direction_deg,
-        num_stations=num_stations,
         num_points=num_points,
-        z_base=z_cap_top - 1.0,  # overlap into cap for reliable boolean union
+        z_base=z_cap_top - 1.0,
+        segments=segments,
     )
-    result = result.union(transition)
+    result = result.union(tube)
 
     if stage == "transition_test":
         return _orient_for_print(result)
 
-    # Helper: push start point back along the incoming direction for overlap
-    def _overlap_start(
-        pt: Tuple[float, float, float],
-        direction: Tuple[float, float, float],
-        amount: float = 1.0,
-    ) -> Tuple[float, float, float]:
-        return (pt[0] - amount * direction[0],
-                pt[1] - amount * direction[1],
-                pt[2] - amount * direction[2])
-
-    # 3. Straight middle section (circle at constant angle)
-    if straight_length > 0:
-        print("  Building straight section...")
-        straight, exit_point, exit_dir = build_redirect(
-            start_point=_overlap_start(exit_point, exit_dir),
-            start_angle_deg=exit_angle_deg,
-            final_angle_deg=exit_angle_deg,  # same angle = straight
-            exit_direction_deg=exit_direction_deg,
-            redirect_length=straight_length,
-            hose_od=hose_od,
-            hose_tolerance=hose_tolerance,
-            tube_wall=tube_wall,
-            num_stations=4,  # straight tube only needs a few stations
-            num_points=num_points,
-        )
-        result = result.union(straight)
-
-    # 4. Redirect / second bend (toward final_angle)
-    if redirect_length > 0:
-        print("  Building second bend...")
-        redirect, exit_point, exit_dir = build_redirect(
-            start_point=_overlap_start(exit_point, exit_dir),
-            start_angle_deg=exit_angle_deg,
-            final_angle_deg=final_angle_deg,
-            exit_direction_deg=exit_direction_deg,
-            redirect_length=redirect_length,
-            hose_od=hose_od,
-            hose_tolerance=hose_tolerance,
-            tube_wall=tube_wall,
-            num_stations=max(num_stations // 2, 4),
-            num_points=num_points,
-        )
-        result = result.union(redirect)
-
-    # 4. Hose socket (extends from the final exit)
+    # 3. Hose socket
     print("  Building hose socket...")
     socket = build_socket(
         exit_x=exit_point[0],

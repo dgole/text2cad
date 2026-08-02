@@ -63,8 +63,8 @@
         "_final_angle_deg": "Final exit angle from vertical after the redirect (degrees). 80 = nearly horizontal.",
         "final_angle_deg": 80.0,
         "_num_loft_stations": "Number of intermediate cross-sections per section.",
-        "num_loft_stations": 16,
+        "num_loft_stations": 8,
         "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
-        "num_profile_points": 32
+        "num_profile_points": 24
     }
 }
