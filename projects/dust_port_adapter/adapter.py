@@ -366,6 +366,19 @@ def build_curved_transition(
     # --- Build wires at each station along the arc ---
     outer_wires = []
     inner_wires = []
+
+    # When start_angle > 0, the tube's first cross-section is tilted relative
+    # to the flat faceplate cap.  Prepend a flat (un-tilted) bridge wire at
+    # z_base so the loft smoothly transitions from flat to tilted, filling
+    # the gap on the back side.
+    if start_angle_deg > 0.5:
+        bridge_outer_3d = [(px, py, z_base) for px, py in
+                           [(oq[0], oq[1]) for oq in outer_quad]]
+        bridge_inner_3d = [(px, py, z_base) for px, py in
+                           [(iq[0], iq[1]) for iq in inner_quad]]
+        outer_wires.append(_make_wire_from_points_3d(bridge_outer_3d))
+        inner_wires.append(_make_wire_from_points_3d(bridge_inner_3d))
+
     for i in range(num_stations + 1):
         # phi = angle along the full arc (start_angle at base, end_angle at exit)
         phi = start_angle + arc_angle * i / num_stations
