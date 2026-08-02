@@ -65,6 +65,7 @@ SOCKET_DEPTH = _tr["socket_depth"]
 TUBE_WALL = _tr["tube_wall"]
 TUBE_LENGTH = _tr["tube_length"]
 EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
+PATH_ANGLE_DEG = _tr["path_angle_deg"]
 EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
@@ -298,6 +299,7 @@ def build_angled_transition(
     tube_wall: float,
     tube_length: float,
     exit_angle_deg: float,
+    path_angle_deg: float,
     exit_direction_deg: float,
     num_stations: int,
     num_points: int,
@@ -321,6 +323,7 @@ def build_angled_transition(
     outer_radius = inner_radius + tube_wall
 
     exit_angle = math.radians(exit_angle_deg)
+    path_angle = math.radians(path_angle_deg)
     alpha = math.radians(exit_direction_deg)
 
     # Horizontal direction the tube angles toward
@@ -328,9 +331,9 @@ def build_angled_transition(
 
     # Path direction (straight line from base to exit)
     path_dir = (
-        math.sin(exit_angle) * d_horiz[0],
-        math.sin(exit_angle) * d_horiz[1],
-        math.cos(exit_angle),
+        math.sin(path_angle) * d_horiz[0],
+        math.sin(path_angle) * d_horiz[1],
+        math.cos(path_angle),
     )
 
     # Binormal: perpendicular to the tilt plane (for Rodrigues rotation)
@@ -477,6 +480,7 @@ def build_adapter(
     tube_wall: float = TUBE_WALL,
     tube_length: float = TUBE_LENGTH,
     exit_angle_deg: float = EXIT_ANGLE_DEG,
+    path_angle_deg: float = PATH_ANGLE_DEG,
     exit_direction_deg: float = EXIT_DIRECTION_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
@@ -500,6 +504,7 @@ def build_adapter(
         tube_wall=tube_wall,
         tube_length=tube_length,
         exit_angle_deg=exit_angle_deg,
+        path_angle_deg=path_angle_deg,
         exit_direction_deg=exit_direction_deg,
         num_stations=num_stations,
         num_points=num_points,
@@ -568,7 +573,9 @@ def main():
     parser.add_argument("--tube-length", type=float, default=TUBE_LENGTH,
                         help="Transition tube length along path (mm).")
     parser.add_argument("--exit-angle-deg", type=float, default=EXIT_ANGLE_DEG,
-                        help="Exit angle from vertical (degrees). 45=diagonal, 90=horizontal.")
+                        help="Angle of the tube exit from vertical (degrees).")
+    parser.add_argument("--path-angle-deg", type=float, default=PATH_ANGLE_DEG,
+                        help="Angle of travel from vertical (degrees).")
     parser.add_argument("--exit-direction-deg", type=float, default=EXIT_DIRECTION_DEG,
                         help="Horizontal direction (degrees). 0=toward A-D, positive=toward A-B.")
     parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
@@ -585,6 +592,7 @@ def main():
         tube_wall=args.tube_wall,
         tube_length=args.tube_length,
         exit_angle_deg=args.exit_angle_deg,
+        path_angle_deg=args.path_angle_deg,
         exit_direction_deg=args.exit_direction_deg,
         num_stations=args.num_stations,
         num_points=args.num_points,
