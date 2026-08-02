@@ -612,11 +612,21 @@ def build_adapter(
     if stage == "transition_test":
         return _orient_for_print(result)
 
+    # Helper: push start point back along the incoming direction for overlap
+    def _overlap_start(
+        pt: Tuple[float, float, float],
+        direction: Tuple[float, float, float],
+        amount: float = 1.0,
+    ) -> Tuple[float, float, float]:
+        return (pt[0] - amount * direction[0],
+                pt[1] - amount * direction[1],
+                pt[2] - amount * direction[2])
+
     # 3. Straight middle section (circle at constant angle)
     if straight_length > 0:
         print("  Building straight section...")
         straight, exit_point, exit_dir = build_redirect(
-            start_point=exit_point,
+            start_point=_overlap_start(exit_point, exit_dir),
             start_angle_deg=exit_angle_deg,
             final_angle_deg=exit_angle_deg,  # same angle = straight
             exit_direction_deg=exit_direction_deg,
@@ -633,7 +643,7 @@ def build_adapter(
     if redirect_length > 0:
         print("  Building second bend...")
         redirect, exit_point, exit_dir = build_redirect(
-            start_point=exit_point,
+            start_point=_overlap_start(exit_point, exit_dir),
             start_angle_deg=exit_angle_deg,
             final_angle_deg=final_angle_deg,
             exit_direction_deg=exit_direction_deg,
