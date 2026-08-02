@@ -65,6 +65,7 @@ HOSE_TOLERANCE = _tr["hose_tolerance"]
 SOCKET_DEPTH = _tr["socket_depth"]
 TUBE_WALL = _tr["tube_wall"]
 ARC_RADIUS = _tr["arc_radius"]
+START_ANGLE_DEG = _tr["start_angle_deg"]
 ARC_ANGLE_DEG = _tr["arc_angle_deg"]
 ARC_DIRECTION_DEG = _tr["arc_direction_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
@@ -298,6 +299,7 @@ def build_curved_transition(
     hose_tolerance: float,
     tube_wall: float,
     arc_radius: float,
+    start_angle_deg: float,
     arc_angle_deg: float,
     arc_direction_deg: float,
     num_stations: int,
@@ -307,21 +309,22 @@ def build_curved_transition(
     """
     Build the hollow curved transition from the port hole quad to a circle.
 
-    The tube starts at z_base (top of the faceplate cap) pointing +Z, and
-    curves along a circular arc toward the exit direction.  The cross-section
-    morphs from the port hole quad shape to a circle over the arc.
+    The tube follows a circular arc from start_angle to start_angle + arc_angle.
+    start_angle > 0 means the tube enters the faceplate already tilted (skipping
+    the initial near-vertical portion of the arc).  The cross-section morphs from
+    the port hole quad shape to a circle over the arc.
 
     Returns:
-        (solid, exit_point, exit_direction) — the solid geometry plus the
-        3D position and unit-vector direction at the arc exit (for attaching
-        the socket).
+        (solid, exit_point, exit_direction)
     """
     centroid = _quad_centroid(port_hole_verts)
     cx, cy = centroid
     inner_radius = (hose_od + hose_tolerance) / 2.0
     outer_radius = inner_radius + tube_wall
 
+    start_angle = math.radians(start_angle_deg)
     arc_angle = math.radians(arc_angle_deg)
+    end_angle = start_angle + arc_angle
     alpha = math.radians(arc_direction_deg)
 
     # Exit direction in XY plane (the horizontal direction the tube curves toward)
@@ -330,6 +333,16 @@ def build_curved_transition(
     # Binormal: perpendicular to the arc plane (constant along the arc)
     # B = d_exit × Z_hat
     binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
+
+    # Adjust arc origin so that arc position at phi=start_angle lands at (cx, cy, z_base).
+    # Unshifted position at phi: P0 + R(1-cos(phi))*d_exit + R*sin(phi)*Z
+    # We want position(start_angle) = (cx, cy, z_base), so:
+    #   P0 = (cx, cy, z_base) - R(1-cos(start))*d_exit - R*sin(start)*Z
+    p0 = (
+        cx - arc_radius * (1 - math.cos(start_angle)) * d_exit[0],
+        cy - arc_radius * (1 - math.cos(start_angle)) * d_exit[1],
+        z_base - arc_radius * math.sin(start_angle),
+    )
 
     # Sample the port hole quad (inner and outer)
     inner_quad = _sample_quad_outline(
@@ -341,24 +354,21 @@ def build_curved_transition(
 
     # Compute start angle for circle sampling (align with first quad point)
     first_quad_pt = inner_quad[0]
-    start_angle = math.atan2(
+    circle_start_angle = math.atan2(
         first_quad_pt[1] - cy,
         first_quad_pt[0] - cx,
     )
 
     # Target circles
-    inner_circle = _sample_circle(cx, cy, inner_radius, num_points, start_angle)
-    outer_circle = _sample_circle(cx, cy, outer_radius, num_points, start_angle)
-
-    # Arc start point
-    p0 = (cx, cy, z_base)
+    inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start_angle)
+    outer_circle = _sample_circle(cx, cy, outer_radius, num_points, circle_start_angle)
 
     # --- Build wires at each station along the arc ---
     outer_wires = []
     inner_wires = []
     for i in range(num_stations + 1):
-        # phi = angle along the arc (0 at start, arc_angle at end)
-        phi = arc_angle * i / num_stations
+        # phi = angle along the full arc (start_angle at base, end_angle at exit)
+        phi = start_angle + arc_angle * i / num_stations
         # t = interpolation parameter for quad→circle morph (0→1)
         t = i / num_stations
 
@@ -389,15 +399,15 @@ def build_curved_transition(
         # Transform 2D points to 3D:
         # - Subtract centroid to get relative positions
         # - Treat as 3D points in XY plane: (dx, dy, 0)
-        # - Rotate by phi around the binormal axis (pivoting at arc start)
+        # - Rotate by -phi around the binormal axis so the cross-section
+        #   stays perpendicular to the arc tangent
         # - Translate to arc position
         def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
             pts_3d = []
             for px, py in pts_2d:
                 # Relative to centroid
                 dx, dy = px - cx, py - cy
-                # Rotate (dx, dy, 0) by -phi around binormal so the
-                # cross-section stays perpendicular to the arc tangent
+                # Rotate (dx, dy, 0) by -phi around binormal
                 rx, ry, rz = _rodrigues_rotate((dx, dy, 0.0), binormal, -phi)
                 pts_3d.append((
                     arc_pos[0] + rx,
@@ -425,15 +435,15 @@ def build_curved_transition(
 
     # --- Compute exit point and direction ---
     exit_point = (
-        p0[0] + arc_radius * (1 - math.cos(arc_angle)) * d_exit[0],
-        p0[1] + arc_radius * (1 - math.cos(arc_angle)) * d_exit[1],
-        p0[2] + arc_radius * math.sin(arc_angle),
+        p0[0] + arc_radius * (1 - math.cos(end_angle)) * d_exit[0],
+        p0[1] + arc_radius * (1 - math.cos(end_angle)) * d_exit[1],
+        p0[2] + arc_radius * math.sin(end_angle),
     )
-    # Tangent at exit: sin(arc_angle) * d_exit + cos(arc_angle) * Z_hat
+    # Tangent at exit: sin(end_angle) * d_exit + cos(end_angle) * Z_hat
     exit_dir = (
-        math.sin(arc_angle) * d_exit[0],
-        math.sin(arc_angle) * d_exit[1],
-        math.cos(arc_angle),
+        math.sin(end_angle) * d_exit[0],
+        math.sin(end_angle) * d_exit[1],
+        math.cos(end_angle),
     )
 
     return result, exit_point, exit_dir
@@ -505,6 +515,7 @@ def build_adapter(
     socket_depth: float = SOCKET_DEPTH,
     tube_wall: float = TUBE_WALL,
     arc_radius: float = ARC_RADIUS,
+    start_angle_deg: float = START_ANGLE_DEG,
     arc_angle_deg: float = ARC_ANGLE_DEG,
     arc_direction_deg: float = ARC_DIRECTION_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
@@ -528,6 +539,7 @@ def build_adapter(
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
         arc_radius=arc_radius,
+        start_angle_deg=start_angle_deg,
         arc_angle_deg=arc_angle_deg,
         arc_direction_deg=arc_direction_deg,
         num_stations=num_stations,
@@ -596,8 +608,10 @@ def main():
     parser.add_argument("--tube-wall", type=float, default=TUBE_WALL)
     parser.add_argument("--arc-radius", type=float, default=ARC_RADIUS,
                         help="Centerline radius of the curved path (mm).")
+    parser.add_argument("--start-angle-deg", type=float, default=START_ANGLE_DEG,
+                        help="Initial tilt at faceplate (degrees from vertical). 0=perpendicular.")
     parser.add_argument("--arc-angle-deg", type=float, default=ARC_ANGLE_DEG,
-                        help="Total sweep angle (degrees). 90=horizontal exit.")
+                        help="Sweep angle (degrees). Exit = start + sweep.")
     parser.add_argument("--arc-direction-deg", type=float, default=ARC_DIRECTION_DEG,
                         help="Curve direction (degrees). 0=toward A-D edge, positive=toward A-B.")
     parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
@@ -613,6 +627,7 @@ def main():
         socket_depth=args.socket_depth,
         tube_wall=args.tube_wall,
         arc_radius=args.arc_radius,
+        start_angle_deg=args.start_angle_deg,
         arc_angle_deg=args.arc_angle_deg,
         arc_direction_deg=args.arc_direction_deg,
         num_stations=args.num_stations,
