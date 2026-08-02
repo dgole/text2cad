@@ -66,6 +66,8 @@ TUBE_WALL = _tr["tube_wall"]
 TUBE_LENGTH = _tr["tube_length"]
 EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
 EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
+REDIRECT_LENGTH = _tr["redirect_length"]
+FINAL_ANGLE_DEG = _tr["final_angle_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
 
@@ -423,6 +425,102 @@ def _make_wire_from_points_3d(
 
 
 # ---------------------------------------------------------------------------
+# Redirect builder: bends circle-to-circle toward final angle
+# ---------------------------------------------------------------------------
+
+def build_redirect(
+    start_point: Tuple[float, float, float],
+    start_angle_deg: float,
+    final_angle_deg: float,
+    exit_direction_deg: float,
+    redirect_length: float,
+    hose_od: float,
+    hose_tolerance: float,
+    tube_wall: float,
+    num_stations: int,
+    num_points: int,
+) -> Tuple[cq.Workplane, Tuple[float, float, float], Tuple[float, float, float]]:
+    """
+    Build a circular-cross-section tube that bends from start_angle to final_angle.
+
+    Same approach as build_angled_transition but simpler: circle in, circle out,
+    no shape morphing — just a direction change.
+
+    Returns:
+        (solid, exit_point, exit_direction)
+    """
+    inner_radius = (hose_od + hose_tolerance) / 2.0
+    outer_radius = inner_radius + tube_wall
+
+    start_angle = math.radians(start_angle_deg)
+    final_angle = math.radians(final_angle_deg)
+    alpha = math.radians(exit_direction_deg)
+
+    d_horiz = (-math.cos(alpha), -math.sin(alpha), 0.0)
+    binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
+
+    # Average path direction for center placement
+    avg_angle = (start_angle + final_angle) / 2.0
+    avg_dir = (
+        math.sin(avg_angle) * d_horiz[0],
+        math.sin(avg_angle) * d_horiz[1],
+        math.cos(avg_angle),
+    )
+
+    # Sample circles
+    inner_circle = _sample_circle(0, 0, inner_radius, num_points, 0)
+    outer_circle = _sample_circle(0, 0, outer_radius, num_points, 0)
+
+    sx, sy, sz = start_point
+
+    outer_wires = []
+    inner_wires = []
+    for i in range(num_stations + 1):
+        t = i / num_stations
+
+        # Tilt interpolates from start_angle to final_angle
+        tilt = start_angle + t * (final_angle - start_angle)
+
+        # Center position along the average direction
+        pos = (
+            sx + t * redirect_length * avg_dir[0],
+            sy + t * redirect_length * avg_dir[1],
+            sz + t * redirect_length * avg_dir[2],
+        )
+
+        def transform(circle_pts: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
+            pts_3d = []
+            for px, py in circle_pts:
+                rx, ry, rz = _rodrigues_rotate((px, py, 0.0), binormal, -tilt)
+                pts_3d.append((pos[0] + rx, pos[1] + ry, pos[2] + rz))
+            return pts_3d
+
+        outer_wires.append(_make_wire_from_points_3d(transform(outer_circle)))
+        inner_wires.append(_make_wire_from_points_3d(transform(inner_circle)))
+
+    outer_solid = cq.Solid.makeLoft(outer_wires)
+    inner_solid = cq.Solid.makeLoft(inner_wires)
+
+    result = cq.Workplane("XY").add(outer_solid).cut(
+        cq.Workplane("XY").add(inner_solid)
+    ).solids()
+
+    # Exit geometry
+    final_dir = (
+        math.sin(final_angle) * d_horiz[0],
+        math.sin(final_angle) * d_horiz[1],
+        math.cos(final_angle),
+    )
+    exit_point = (
+        sx + redirect_length * avg_dir[0],
+        sy + redirect_length * avg_dir[1],
+        sz + redirect_length * avg_dir[2],
+    )
+
+    return result, exit_point, final_dir
+
+
+# ---------------------------------------------------------------------------
 # Socket builder: female hose socket
 # ---------------------------------------------------------------------------
 
@@ -478,6 +576,8 @@ def build_adapter(
     tube_length: float = TUBE_LENGTH,
     exit_angle_deg: float = EXIT_ANGLE_DEG,
     exit_direction_deg: float = EXIT_DIRECTION_DEG,
+    redirect_length: float = REDIRECT_LENGTH,
+    final_angle_deg: float = FINAL_ANGLE_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
 ) -> cq.Workplane:
@@ -510,7 +610,24 @@ def build_adapter(
     if stage == "transition_test":
         return _orient_for_print(result)
 
-    # 3. Hose socket (extends from the transition exit)
+    # 3. Redirect section (bends from exit_angle toward final_angle)
+    if redirect_length > 0:
+        print("  Building redirect...")
+        redirect, exit_point, exit_dir = build_redirect(
+            start_point=exit_point,
+            start_angle_deg=exit_angle_deg,
+            final_angle_deg=final_angle_deg,
+            exit_direction_deg=exit_direction_deg,
+            redirect_length=redirect_length,
+            hose_od=hose_od,
+            hose_tolerance=hose_tolerance,
+            tube_wall=tube_wall,
+            num_stations=max(num_stations // 2, 4),
+            num_points=num_points,
+        )
+        result = result.union(redirect)
+
+    # 4. Hose socket (extends from the final exit)
     print("  Building hose socket...")
     socket = build_socket(
         exit_x=exit_point[0],
@@ -571,6 +688,10 @@ def main():
                         help="Exit angle from vertical (degrees). 45=diagonal, 90=horizontal.")
     parser.add_argument("--exit-direction-deg", type=float, default=EXIT_DIRECTION_DEG,
                         help="Horizontal direction (degrees). 0=toward A-D, positive=toward A-B.")
+    parser.add_argument("--redirect-length", type=float, default=REDIRECT_LENGTH,
+                        help="Length of redirect bend toward final angle (mm). 0=skip.")
+    parser.add_argument("--final-angle-deg", type=float, default=FINAL_ANGLE_DEG,
+                        help="Final exit angle after redirect (degrees from vertical).")
     parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
     parser.add_argument("--num-points", type=int, default=NUM_PROFILE_POINTS)
 
@@ -586,6 +707,8 @@ def main():
         tube_length=args.tube_length,
         exit_angle_deg=args.exit_angle_deg,
         exit_direction_deg=args.exit_direction_deg,
+        redirect_length=args.redirect_length,
+        final_angle_deg=args.final_angle_deg,
         num_stations=args.num_stations,
         num_points=args.num_points,
     )
