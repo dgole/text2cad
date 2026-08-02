@@ -410,7 +410,13 @@ def build_angled_transition(
         z_base + tube_length * path_dir[2],
     )
 
-    return result, exit_point, path_dir
+    final_face_normal = (
+        math.sin(exit_angle) * d_horiz[0],
+        math.sin(exit_angle) * d_horiz[1],
+        math.cos(exit_angle),
+    )
+
+    return result, exit_point, final_face_normal
 
 
 def _make_wire_from_points_3d(
@@ -517,15 +523,23 @@ def build_adapter(
 
     # 3. Hose socket (extends from the transition exit)
     print("  Building hose socket...")
+    
+    # Overlap socket by 1mm into the tube to ensure solid union
+    overlap_pt = (
+        exit_point[0] - 1.0 * exit_dir[0],
+        exit_point[1] - 1.0 * exit_dir[1],
+        exit_point[2] - 1.0 * exit_dir[2],
+    )
+
     socket = build_socket(
-        exit_x=exit_point[0],
-        exit_y=exit_point[1],
-        exit_z=exit_point[2],
+        exit_x=overlap_pt[0],
+        exit_y=overlap_pt[1],
+        exit_z=overlap_pt[2],
         exit_dir=exit_dir,
         hose_od=hose_od,
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
-        socket_depth=socket_depth,
+        socket_depth=socket_depth + 1.0,  # add 1mm to preserve usable depth
     )
     result = result.union(socket)
 
