@@ -51,7 +51,7 @@
         "_tube_wall": "Wall thickness of the transition tube.",
         "tube_wall": 3.0,
         "_tube_length": "Length of the transition tube along its centerline path (mm).",
-        "tube_length": 110.0,
+        "tube_length": 90.0,
         "_exit_angle_deg": "Angle of the tube exit face from vertical (degrees). 80 = nearly horizontal.",
         "exit_angle_deg": 80.0,
         "_path_angle_deg": "Angle of the straight travel path from vertical. Keep this shallower than exit_angle to avoid crashing into the faceplate.",
