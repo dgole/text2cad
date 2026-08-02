@@ -532,7 +532,7 @@ def build_adapter(
         arc_direction_deg=arc_direction_deg,
         num_stations=num_stations,
         num_points=num_points,
-        z_base=z_cap_top,
+        z_base=z_cap_top - 1.0,  # overlap into cap for reliable boolean union
     )
     result = result.union(transition)
 
