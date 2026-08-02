@@ -66,6 +66,7 @@ TUBE_WALL = _tr["tube_wall"]
 TUBE_LENGTH = _tr["tube_length"]
 EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
 EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
+STRAIGHT_LENGTH = _tr["straight_length"]
 REDIRECT_LENGTH = _tr["redirect_length"]
 FINAL_ANGLE_DEG = _tr["final_angle_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
@@ -576,6 +577,7 @@ def build_adapter(
     tube_length: float = TUBE_LENGTH,
     exit_angle_deg: float = EXIT_ANGLE_DEG,
     exit_direction_deg: float = EXIT_DIRECTION_DEG,
+    straight_length: float = STRAIGHT_LENGTH,
     redirect_length: float = REDIRECT_LENGTH,
     final_angle_deg: float = FINAL_ANGLE_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
@@ -590,8 +592,8 @@ def build_adapter(
     print("  Building faceplate...")
     result = build_faceplate(flip_for_print=False)
 
-    # 2. Angled transition (quad → circle, straight path)
-    print("  Building angled transition...")
+    # 2. Angled transition / first bend (quad → circle)
+    print("  Building first bend...")
     transition, exit_point, exit_dir = build_angled_transition(
         port_hole_verts=PORT_HOLE_VERTS,
         port_hole_fillet=PORT_HOLE_FILLET,
@@ -610,9 +612,26 @@ def build_adapter(
     if stage == "transition_test":
         return _orient_for_print(result)
 
-    # 3. Redirect section (bends from exit_angle toward final_angle)
+    # 3. Straight middle section (circle at constant angle)
+    if straight_length > 0:
+        print("  Building straight section...")
+        straight, exit_point, exit_dir = build_redirect(
+            start_point=exit_point,
+            start_angle_deg=exit_angle_deg,
+            final_angle_deg=exit_angle_deg,  # same angle = straight
+            exit_direction_deg=exit_direction_deg,
+            redirect_length=straight_length,
+            hose_od=hose_od,
+            hose_tolerance=hose_tolerance,
+            tube_wall=tube_wall,
+            num_stations=4,  # straight tube only needs a few stations
+            num_points=num_points,
+        )
+        result = result.union(straight)
+
+    # 4. Redirect / second bend (toward final_angle)
     if redirect_length > 0:
-        print("  Building redirect...")
+        print("  Building second bend...")
         redirect, exit_point, exit_dir = build_redirect(
             start_point=exit_point,
             start_angle_deg=exit_angle_deg,
@@ -688,6 +707,8 @@ def main():
                         help="Exit angle from vertical (degrees). 45=diagonal, 90=horizontal.")
     parser.add_argument("--exit-direction-deg", type=float, default=EXIT_DIRECTION_DEG,
                         help="Horizontal direction (degrees). 0=toward A-D, positive=toward A-B.")
+    parser.add_argument("--straight-length", type=float, default=STRAIGHT_LENGTH,
+                        help="Length of straight middle section (mm). 0=skip.")
     parser.add_argument("--redirect-length", type=float, default=REDIRECT_LENGTH,
                         help="Length of redirect bend toward final angle (mm). 0=skip.")
     parser.add_argument("--final-angle-deg", type=float, default=FINAL_ANGLE_DEG,
@@ -707,6 +728,7 @@ def main():
         tube_length=args.tube_length,
         exit_angle_deg=args.exit_angle_deg,
         exit_direction_deg=args.exit_direction_deg,
+        straight_length=args.straight_length,
         redirect_length=args.redirect_length,
         final_angle_deg=args.final_angle_deg,
         num_stations=args.num_stations,
