@@ -1,20 +1,19 @@
 #!/usr/bin/env python3
 """
-Dust Port Adapter — complete adapter with curved transition tube.
+Dust Port Adapter — complete adapter with angled transition tube.
 
 Builds the full adapter: faceplate (clips onto the saw's dust port rim)
-and a curved transition tube that morphs from the irregular port hole
-to a circular hose connection while simultaneously curving from vertical
-toward the exit direction.
+and a straight angled transition tube that morphs from the irregular port
+hole to a circular hose connection while going at ~45° from vertical.
 
 Stages:
-    transition_test — faceplate + curved transition (quad → circle along arc)
-    full            — faceplate + curved transition + female hose socket
+    transition_test — faceplate + angled transition (quad → circle)
+    full            — faceplate + angled transition + female hose socket
 
 Usage:
     python adapter.py full
     python adapter.py transition_test
-    python adapter.py full --hose-od 38 --arc-angle-deg 90
+    python adapter.py full --exit-angle-deg 60 --tube-length 40
 """
 
 from __future__ import annotations
@@ -64,10 +63,9 @@ HOSE_OD = _tr["hose_od"]
 HOSE_TOLERANCE = _tr["hose_tolerance"]
 SOCKET_DEPTH = _tr["socket_depth"]
 TUBE_WALL = _tr["tube_wall"]
-ARC_RADIUS = _tr["arc_radius"]
-START_ANGLE_DEG = _tr["start_angle_deg"]
-ARC_ANGLE_DEG = _tr["arc_angle_deg"]
-ARC_DIRECTION_DEG = _tr["arc_direction_deg"]
+TUBE_LENGTH = _tr["tube_length"]
+EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
+EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
 
@@ -292,27 +290,27 @@ def _rodrigues_rotate(
     )
 
 
-def build_curved_transition(
+def build_angled_transition(
     port_hole_verts: List[Tuple[float, float]],
     port_hole_fillet: float,
     hose_od: float,
     hose_tolerance: float,
     tube_wall: float,
-    arc_radius: float,
-    start_angle_deg: float,
-    arc_angle_deg: float,
-    arc_direction_deg: float,
+    tube_length: float,
+    exit_angle_deg: float,
+    exit_direction_deg: float,
     num_stations: int,
     num_points: int,
     z_base: float,
 ) -> Tuple[cq.Workplane, Tuple[float, float, float], Tuple[float, float, float]]:
     """
-    Build the hollow curved transition from the port hole quad to a circle.
+    Build a straight angled transition from port hole quad to hose circle.
 
-    The tube follows a circular arc from start_angle to start_angle + arc_angle.
-    start_angle > 0 means the tube enters the faceplate already tilted (skipping
-    the initial near-vertical portion of the arc).  The cross-section morphs from
-    the port hole quad shape to a circle over the arc.
+    The tube goes in a straight line at exit_angle from vertical.  Cross-sections
+    gradually tilt from flat (flush with the faceplate cap at the base) to
+    perpendicular to the path at the exit.  The shape morphs from quad to circle.
+
+    First wire is flat in XY → connects flush to the faceplate, no gap.
 
     Returns:
         (solid, exit_point, exit_direction)
@@ -322,27 +320,21 @@ def build_curved_transition(
     inner_radius = (hose_od + hose_tolerance) / 2.0
     outer_radius = inner_radius + tube_wall
 
-    start_angle = math.radians(start_angle_deg)
-    arc_angle = math.radians(arc_angle_deg)
-    end_angle = start_angle + arc_angle
-    alpha = math.radians(arc_direction_deg)
+    exit_angle = math.radians(exit_angle_deg)
+    alpha = math.radians(exit_direction_deg)
 
-    # Exit direction in XY plane (the horizontal direction the tube curves toward)
-    d_exit = (-math.cos(alpha), -math.sin(alpha), 0.0)
+    # Horizontal direction the tube angles toward
+    d_horiz = (-math.cos(alpha), -math.sin(alpha), 0.0)
 
-    # Binormal: perpendicular to the arc plane (constant along the arc)
-    # B = d_exit × Z_hat
-    binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
-
-    # Adjust arc origin so that arc position at phi=start_angle lands at (cx, cy, z_base).
-    # Unshifted position at phi: P0 + R(1-cos(phi))*d_exit + R*sin(phi)*Z
-    # We want position(start_angle) = (cx, cy, z_base), so:
-    #   P0 = (cx, cy, z_base) - R(1-cos(start))*d_exit - R*sin(start)*Z
-    p0 = (
-        cx - arc_radius * (1 - math.cos(start_angle)) * d_exit[0],
-        cy - arc_radius * (1 - math.cos(start_angle)) * d_exit[1],
-        z_base - arc_radius * math.sin(start_angle),
+    # Path direction (straight line from base to exit)
+    path_dir = (
+        math.sin(exit_angle) * d_horiz[0],
+        math.sin(exit_angle) * d_horiz[1],
+        math.cos(exit_angle),
     )
+
+    # Binormal: perpendicular to the tilt plane (for Rodrigues rotation)
+    binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
 
     # Sample the port hole quad (inner and outer)
     inner_quad = _sample_quad_outline(
@@ -352,114 +344,70 @@ def build_curved_transition(
         port_hole_verts, port_hole_fillet, tube_wall, num_points, centroid,
     )
 
-    # Compute start angle for circle sampling (align with first quad point)
+    # Align circle sampling with first quad point
     first_quad_pt = inner_quad[0]
-    circle_start_angle = math.atan2(
+    circle_start = math.atan2(
         first_quad_pt[1] - cy,
         first_quad_pt[0] - cx,
     )
+    inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start)
+    outer_circle = _sample_circle(cx, cy, outer_radius, num_points, circle_start)
 
-    # Target circles
-    inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start_angle)
-    outer_circle = _sample_circle(cx, cy, outer_radius, num_points, circle_start_angle)
-
-    # --- Build wires at each station along the arc ---
+    # --- Build wires at each station ---
     outer_wires = []
     inner_wires = []
-
-    # When start_angle > 0, the tube's first cross-section is tilted relative
-    # to the flat faceplate cap.  Prepend a flat (un-tilted) bridge wire at
-    # z_base so the loft smoothly transitions from flat to tilted, filling
-    # the gap on the back side.
-    if start_angle_deg > 0.5:
-        bridge_outer_3d = [(px, py, z_base) for px, py in
-                           [(oq[0], oq[1]) for oq in outer_quad]]
-        bridge_inner_3d = [(px, py, z_base) for px, py in
-                           [(iq[0], iq[1]) for iq in inner_quad]]
-        outer_wires.append(_make_wire_from_points_3d(bridge_outer_3d))
-        inner_wires.append(_make_wire_from_points_3d(bridge_inner_3d))
-
     for i in range(num_stations + 1):
-        # phi = angle along the full arc (start_angle at base, end_angle at exit)
-        phi = start_angle + arc_angle * i / num_stations
-        # t = interpolation parameter for quad→circle morph (0→1)
-        t = i / num_stations
+        t = i / num_stations  # 0 at base, 1 at exit
 
-        # Interpolate 2D cross-section (quad→circle) centered at centroid
+        # Center position: linear interpolation along path
+        pos = (
+            cx + t * tube_length * path_dir[0],
+            cy + t * tube_length * path_dir[1],
+            z_base + t * tube_length * path_dir[2],
+        )
+
+        # Tilt: 0 (flat) at base → exit_angle at exit
+        tilt = t * exit_angle
+
+        # Interpolate 2D cross-section (quad→circle)
         outer_pts_2d = [
-            (
-                (1 - t) * oq[0] + t * oc[0],
-                (1 - t) * oq[1] + t * oc[1],
-            )
+            ((1 - t) * oq[0] + t * oc[0], (1 - t) * oq[1] + t * oc[1])
             for oq, oc in zip(outer_quad, outer_circle)
         ]
         inner_pts_2d = [
-            (
-                (1 - t) * iq[0] + t * ic[0],
-                (1 - t) * iq[1] + t * ic[1],
-            )
+            ((1 - t) * iq[0] + t * ic[0], (1 - t) * iq[1] + t * ic[1])
             for iq, ic in zip(inner_quad, inner_circle)
         ]
 
-        # Arc centerline position at phi:
-        #   Position = P0 + R(1 - cos φ) * d_exit + R sin φ * Z_hat
-        arc_pos = (
-            p0[0] + arc_radius * (1 - math.cos(phi)) * d_exit[0],
-            p0[1] + arc_radius * (1 - math.cos(phi)) * d_exit[1],
-            p0[2] + arc_radius * math.sin(phi),
-        )
-
-        # Transform 2D points to 3D:
-        # - Subtract centroid to get relative positions
-        # - Treat as 3D points in XY plane: (dx, dy, 0)
-        # - Rotate by -phi around the binormal axis so the cross-section
-        #   stays perpendicular to the arc tangent
-        # - Translate to arc position
+        # Transform 2D → 3D: subtract centroid, rotate by -tilt, translate
         def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
             pts_3d = []
             for px, py in pts_2d:
-                # Relative to centroid
                 dx, dy = px - cx, py - cy
-                # Rotate (dx, dy, 0) by -phi around binormal
-                rx, ry, rz = _rodrigues_rotate((dx, dy, 0.0), binormal, -phi)
-                pts_3d.append((
-                    arc_pos[0] + rx,
-                    arc_pos[1] + ry,
-                    arc_pos[2] + rz,
-                ))
+                rx, ry, rz = _rodrigues_rotate((dx, dy, 0.0), binormal, -tilt)
+                pts_3d.append((pos[0] + rx, pos[1] + ry, pos[2] + rz))
             return pts_3d
 
-        outer_pts_3d = transform(outer_pts_2d)
-        inner_pts_3d = transform(inner_pts_2d)
-
-        outer_wires.append(_make_wire_from_points_3d(outer_pts_3d))
-        inner_wires.append(_make_wire_from_points_3d(inner_pts_3d))
+        outer_wires.append(_make_wire_from_points_3d(transform(outer_pts_2d)))
+        inner_wires.append(_make_wire_from_points_3d(transform(inner_pts_2d)))
 
     # --- Loft outer and inner shells ---
     outer_solid = cq.Solid.makeLoft(outer_wires)
     inner_solid = cq.Solid.makeLoft(inner_wires)
 
     # Hollow tube = outer - inner
-    # The boolean cut on non-coplanar lofts may produce a Compound;
-    # .solids() extracts the actual solid(s) for downstream .union().
     result = cq.Workplane("XY").add(outer_solid).cut(
         cq.Workplane("XY").add(inner_solid)
     ).solids()
 
-    # --- Compute exit point and direction ---
+    # --- Exit geometry ---
     exit_point = (
-        p0[0] + arc_radius * (1 - math.cos(end_angle)) * d_exit[0],
-        p0[1] + arc_radius * (1 - math.cos(end_angle)) * d_exit[1],
-        p0[2] + arc_radius * math.sin(end_angle),
-    )
-    # Tangent at exit: sin(end_angle) * d_exit + cos(end_angle) * Z_hat
-    exit_dir = (
-        math.sin(end_angle) * d_exit[0],
-        math.sin(end_angle) * d_exit[1],
-        math.cos(end_angle),
+        cx + tube_length * path_dir[0],
+        cy + tube_length * path_dir[1],
+        z_base + tube_length * path_dir[2],
     )
 
-    return result, exit_point, exit_dir
+    return result, exit_point, path_dir
 
 
 def _make_wire_from_points_3d(
@@ -527,10 +475,9 @@ def build_adapter(
     hose_tolerance: float = HOSE_TOLERANCE,
     socket_depth: float = SOCKET_DEPTH,
     tube_wall: float = TUBE_WALL,
-    arc_radius: float = ARC_RADIUS,
-    start_angle_deg: float = START_ANGLE_DEG,
-    arc_angle_deg: float = ARC_ANGLE_DEG,
-    arc_direction_deg: float = ARC_DIRECTION_DEG,
+    tube_length: float = TUBE_LENGTH,
+    exit_angle_deg: float = EXIT_ANGLE_DEG,
+    exit_direction_deg: float = EXIT_DIRECTION_DEG,
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
 ) -> cq.Workplane:
@@ -543,18 +490,17 @@ def build_adapter(
     print("  Building faceplate...")
     result = build_faceplate(flip_for_print=False)
 
-    # 2. Curved transition (quad → circle along arc)
-    print("  Building curved transition...")
-    transition, exit_point, exit_dir = build_curved_transition(
+    # 2. Angled transition (quad → circle, straight path)
+    print("  Building angled transition...")
+    transition, exit_point, exit_dir = build_angled_transition(
         port_hole_verts=PORT_HOLE_VERTS,
         port_hole_fillet=PORT_HOLE_FILLET,
         hose_od=hose_od,
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
-        arc_radius=arc_radius,
-        start_angle_deg=start_angle_deg,
-        arc_angle_deg=arc_angle_deg,
-        arc_direction_deg=arc_direction_deg,
+        tube_length=tube_length,
+        exit_angle_deg=exit_angle_deg,
+        exit_direction_deg=exit_direction_deg,
         num_stations=num_stations,
         num_points=num_points,
         z_base=z_cap_top - 1.0,  # overlap into cap for reliable boolean union
@@ -564,7 +510,7 @@ def build_adapter(
     if stage == "transition_test":
         return _orient_for_print(result)
 
-    # 3. Hose socket (extends from the arc exit)
+    # 3. Hose socket (extends from the transition exit)
     print("  Building hose socket...")
     socket = build_socket(
         exit_x=exit_point[0],
@@ -592,8 +538,8 @@ def _orient_for_print(body: cq.Workplane) -> cq.Workplane:
 # ---------------------------------------------------------------------------
 
 STAGES = {
-    "transition_test": "Faceplate + curved transition (quad → circle along arc)",
-    "full": "Complete adapter: faceplate + curved transition + hose socket",
+    "transition_test": "Faceplate + angled transition (quad → circle)",
+    "full": "Complete adapter: faceplate + angled transition + hose socket",
 }
 
 
@@ -619,14 +565,12 @@ def main():
     parser.add_argument("--hose-tolerance", type=float, default=HOSE_TOLERANCE)
     parser.add_argument("--socket-depth", type=float, default=SOCKET_DEPTH)
     parser.add_argument("--tube-wall", type=float, default=TUBE_WALL)
-    parser.add_argument("--arc-radius", type=float, default=ARC_RADIUS,
-                        help="Centerline radius of the curved path (mm).")
-    parser.add_argument("--start-angle-deg", type=float, default=START_ANGLE_DEG,
-                        help="Initial tilt at faceplate (degrees from vertical). 0=perpendicular.")
-    parser.add_argument("--arc-angle-deg", type=float, default=ARC_ANGLE_DEG,
-                        help="Sweep angle (degrees). Exit = start + sweep.")
-    parser.add_argument("--arc-direction-deg", type=float, default=ARC_DIRECTION_DEG,
-                        help="Curve direction (degrees). 0=toward A-D edge, positive=toward A-B.")
+    parser.add_argument("--tube-length", type=float, default=TUBE_LENGTH,
+                        help="Transition tube length along path (mm).")
+    parser.add_argument("--exit-angle-deg", type=float, default=EXIT_ANGLE_DEG,
+                        help="Exit angle from vertical (degrees). 45=diagonal, 90=horizontal.")
+    parser.add_argument("--exit-direction-deg", type=float, default=EXIT_DIRECTION_DEG,
+                        help="Horizontal direction (degrees). 0=toward A-D, positive=toward A-B.")
     parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
     parser.add_argument("--num-points", type=int, default=NUM_PROFILE_POINTS)
 
@@ -639,10 +583,9 @@ def main():
         hose_tolerance=args.hose_tolerance,
         socket_depth=args.socket_depth,
         tube_wall=args.tube_wall,
-        arc_radius=args.arc_radius,
-        start_angle_deg=args.start_angle_deg,
-        arc_angle_deg=args.arc_angle_deg,
-        arc_direction_deg=args.arc_direction_deg,
+        tube_length=args.tube_length,
+        exit_angle_deg=args.exit_angle_deg,
+        exit_direction_deg=args.exit_direction_deg,
         num_stations=args.num_stations,
         num_points=args.num_points,
     )
