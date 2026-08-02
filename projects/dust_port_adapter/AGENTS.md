@@ -35,16 +35,17 @@ Side view (cross section):
 `faceplate.py` imports geometry helpers from `profile_test.py` — they share a
 single source of truth for the rim shape via `config.json`.
 
-### `adapter.py` — Complete adapter with transition tube
+### `adapter.py` — Complete adapter with curved transition tube
 
-Builds the full adapter: faceplate + transition tube that morphs from the
-irregular port hole to a circular hose connection. Three stages:
+Builds the full adapter: faceplate + a single curved transition tube that
+morphs from the irregular port hole to a circular hose connection while
+simultaneously curving from vertical toward the exit direction. No discrete
+elbow — the quad→circle morph and directional change happen together along
+a smooth arc. Two stages:
 
-- **`loft_test`** — Faceplate + straight transition loft (quad → circle).
-  Verify the cross-section morph looks right.
-- **`elbow_test`** — Faceplate + loft + 90° elbow.
-  Check the bend geometry.
-- **`full`** — Complete adapter: faceplate + loft + elbow + female hose socket.
+- **`transition_test`** — Faceplate + curved transition (no socket).
+  Verify the shape morph and curve look right.
+- **`full`** — Complete adapter: faceplate + curved transition + female hose socket.
 
 ```
 Side view (cross section):
@@ -55,18 +56,15 @@ Side view (cross section):
     ├───┴─────────────────┴───┤
     │█████████████████████████│  ← cap (with port hole + screw hole)
     ├─────────────────────────┤
-    │   TRANSITION LOFT       │  quad → circle, ~40mm
-    │   (quad cross-section   │
-    │    morphs to circle)    │
-    ├────────○────────────────┤  ← now circular
-    │         ╲               │
-    │    90°   ╲  ELBOW       │  ~40mm bend radius
-    │    bend   ╲             │
-    ├────────────○            │
-    │   SOCKET   │            │  ← female, hose slides in, ~20mm
-    └────────────┘
+    │  ╲                      │  ← curve starts immediately
+    │    ╲  CURVED TRANSITION │    quad→circle morph happens
+    │     ╲   (arc R=40mm)    │    along the arc path
+    │      ╲                  │
+    │       ○─────────────────│  ← now circular, ~75° from vertical
+    │  SOCKET (20mm)          │  ← female, hose slides in
+    └─────────────────────────┘
 
-    Bend direction: toward the A-D edge (left side of faceplate)
+    Arc direction: 40° from A-D edge toward A-B edge
 ```
 
 Imports `build_faceplate()` from `faceplate.py` and geometry helpers from

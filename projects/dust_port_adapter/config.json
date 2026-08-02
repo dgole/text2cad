@@ -48,17 +48,17 @@
         "hose_tolerance": 0.5,
         "_socket_depth": "Depth of the female socket (how far the hose inserts).",
         "socket_depth": 20.0,
-        "_tube_wall": "Wall thickness of the transition tube and elbow.",
+        "_tube_wall": "Wall thickness of the transition tube.",
         "tube_wall": 3.0,
-        "_straight_length": "Length of the straight quad-to-circle loft section.",
-        "straight_length": 25.0,
-        "_bend_radius": "Centerline radius of the 90-degree elbow.",
-        "bend_radius": 22.0,
-        "_bend_direction_deg": "Rotation of bend direction (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge (downward).",
-        "bend_direction_deg": 40.0,
-        "_num_loft_stations": "Number of intermediate cross-sections for the loft.",
+        "_arc_radius": "Centerline radius of the curved transition path. Larger = gentler curve, taller part.",
+        "arc_radius": 40.0,
+        "_arc_angle_deg": "Total sweep angle of the curved path (degrees). 90 = exits horizontal. Less = exits angled upward.",
+        "arc_angle_deg": 75.0,
+        "_arc_direction_deg": "Direction the tube curves toward (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge.",
+        "arc_direction_deg": 40.0,
+        "_num_loft_stations": "Number of intermediate cross-sections along the curved path.",
         "num_loft_stations": 16,
         "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
-        "num_profile_points": 64
+        "num_profile_points": 32
     }
 }
