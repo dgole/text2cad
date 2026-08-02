@@ -55,7 +55,7 @@
         "_exit_angle_deg": "Angle of the tube exit face from vertical (degrees). 80 = nearly horizontal.",
         "exit_angle_deg": 80.0,
         "_path_angle_deg": "Angle of the straight travel path from vertical. Negative means it leans backwards.",
-        "path_angle_deg": 60.0,
+        "path_angle_deg": 50.0,
         "_exit_direction_deg": "Horizontal direction the tube points (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge.",
         "exit_direction_deg": 40.0,
         "_num_loft_stations": "Number of intermediate cross-sections along the tube.",
