@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import on_build_plate  # noqa: E402
 
 # Import builders from sibling modules
 from faceplate import build_faceplate  # noqa: E402
@@ -519,7 +520,7 @@ def build_adapter(
     result = result.union(transition)
 
     if stage == "transition_test":
-        return _orient_for_print(result)
+        return on_build_plate(result)
 
     # 3. Hose socket (extends from the transition exit)
     print("  Building hose socket...")
@@ -543,13 +544,7 @@ def build_adapter(
     )
     result = result.union(socket)
 
-    return _orient_for_print(result)
-
-
-def _orient_for_print(body: cq.Workplane) -> cq.Workplane:
-    """Shift the part so the lowest point sits at Z = 0."""
-    bb = body.val().BoundingBox()
-    return body.translate((0, 0, -bb.zmin))
+    return on_build_plate(result)
 
 
 # ---------------------------------------------------------------------------

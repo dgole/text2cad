@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import filleted_box, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth
@@ -70,20 +71,6 @@ MAGNET_INSET    = CFG["magnet_pockets"]["inset"]
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _make_box(
-    width: float, depth: float, height: float, fillet: float,
-) -> cq.Workplane:
-    """Rectangular prism with filleted vertical edges, base at Z=0."""
-    body = (
-        cq.Workplane("XY")
-        .box(width, depth, height, centered=(True, True, False))
-    )
-    safe_fillet = min(fillet, min(width, depth) / 2 - 0.01)
-    if safe_fillet > 0.01:
-        body = body.edges("|Z").fillet(safe_fillet)
-    return body
-
 
 def _resolve_slot(slot: dict, slot_types: dict) -> dict:
     """Merge a slot entry with its type template to get length/width/depth."""
@@ -137,7 +124,7 @@ def _cut_pen_troughs(
             .box(length, width, depth, centered=(True, True, False), combine=False)
             .translate((0, 0, -depth))
         )
-        safe_r = min(slot_fillet, width / 2 - 0.01, length / 2 - 0.01)
+        safe_r = safe_fillet_radius(slot_fillet, width, length)
         if safe_r > 0.01:
             cutter = cutter.edges("|Z").fillet(safe_r)
         body = body.cut(cutter)
@@ -161,7 +148,7 @@ def _cut_pen_troughs(
             .box(width, length, depth, centered=(True, True, False), combine=False)
             .translate((0, 0, -depth))
         )
-        safe_r = min(slot_fillet, width / 2 - 0.01, length / 2 - 0.01)
+        safe_r = safe_fillet_radius(slot_fillet, width, length)
         if safe_r > 0.01:
             cutter = cutter.edges("|Z").fillet(safe_r)
         body = body.cut(cutter)
@@ -235,7 +222,7 @@ def build_base(
     **_kw,
 ) -> cq.Workplane:
     """Stage: base with rectangular pen troughs and magnet pockets on the top face."""
-    body = _make_box(width, depth, height, fillet)
+    body = filleted_box(width, depth, height, fillet)
     body = _cut_pen_troughs(body, width, depth, height, h_slots, v_slots, slot_types, slot_fillet)
     body = _cut_magnet_pockets(body, width, depth, height, magnet_diameter, magnet_depth, magnet_inset)
     return body
@@ -252,7 +239,7 @@ def build_lid(
     **_kw,
 ) -> cq.Workplane:
     """Stage: lid — same XY footprint, shorter height, magnet pockets on top (print upside-down)."""
-    body = _make_box(width, depth, lid_height, fillet)
+    body = filleted_box(width, depth, lid_height, fillet)
     body = _cut_magnet_pockets(
         body, width, depth, lid_height,
         magnet_diameter, magnet_depth, magnet_inset,

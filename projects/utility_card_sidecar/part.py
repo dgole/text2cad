@@ -29,6 +29,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import filleted_box, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
@@ -76,22 +77,6 @@ HOOK_LENGTH = CFG["hook_length"]
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
-
-def _make_body(width: float, length: float, height: float,
-               fillet: float) -> cq.Workplane:
-    """Solid rectangular block with filleted vertical edges, base at Z=0.
-
-    X = width (60 mm), Y = length (130 mm), Z = height (70 mm).
-    """
-    body = (
-        cq.Workplane("XY")
-        .box(width, length, height, centered=(True, True, False))
-    )
-    safe_fillet = min(fillet, min(width, length) / 2 - 0.01)
-    if safe_fillet > 0.01:
-        body = body.edges("|Z").fillet(safe_fillet)
-    return body
-
 
 def _make_hook(width: float, height: float,
                hook_length: float,
@@ -210,7 +195,7 @@ def _cut_pockets(
         elif slot_type == "small":
             # width spans X (body depth), length spans Y (body length)
             rx, ry = small_width, small_length
-            safe_f = min(fillet, min(rx, ry) / 2 - 0.01)
+            safe_f = safe_fillet_radius(fillet, rx, ry)
             pocket = (
                 cq.Workplane("XY")
                 .workplane(offset=height)
@@ -223,7 +208,7 @@ def _cut_pockets(
         else:  # big
             # width spans X (body depth), length spans Y (body length)
             rx, ry = big_width, big_length
-            safe_f = min(fillet, min(rx, ry) / 2 - 0.01)
+            safe_f = safe_fillet_radius(fillet, rx, ry)
             pocket = (
                 cq.Workplane("XY")
                 .workplane(offset=height)
@@ -256,7 +241,7 @@ def build_clip_test(
 ) -> cq.Workplane:
     """Stage: thin body slice (20mm tall) + full hook — test clip fit."""
     test_height = 20
-    body = _make_body(width, length, test_height, fillet)
+    body = filleted_box(width, length, test_height, fillet)
     hook = _make_hook(width, test_height, hook_length, hook_gap, lip_height,
                       hook_thickness)
     return body.union(hook)
@@ -274,7 +259,7 @@ def build_body(
     **_kw,
 ) -> cq.Workplane:
     """Stage: full solid block + hook — check overall size."""
-    body = _make_body(width, length, height, fillet)
+    body = filleted_box(width, length, height, fillet)
     hook = _make_hook(width, height, hook_length, hook_gap, lip_height,
                       hook_thickness)
     return body.union(hook)
@@ -302,7 +287,7 @@ def build_full(
     **_kw,
 ) -> cq.Workplane:
     """Stage: complete part with all pockets + hook."""
-    body = _make_body(width, length, height, fillet)
+    body = filleted_box(width, length, height, fillet)
     hook = _make_hook(width, height, hook_length, hook_gap, lip_height,
                       hook_thickness)
     body = body.union(hook)

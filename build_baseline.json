@@ -1,0 +1,466 @@
+{
+  "projects/desk_organizer/part.py::block#desk_organizer_block.stl": {
+    "area": 63649.63356871231,
+    "bbox_max": [
+      55.0,
+      50.0,
+      100.0
+    ],
+    "bbox_min": [
+      -55.0,
+      -50.0,
+      0.0
+    ],
+    "sha256": "4edb75c53a60f5669cd59677b38c1aa7090677760856a6b57be7666485f2cf8d",
+    "triangles": 524,
+    "volume": 1099656.132499255
+  },
+  "projects/desk_organizer/part.py::bottom#desk_organizer_bottom.stl": {
+    "area": 33337.376698167725,
+    "bbox_max": [
+      2.4563729763031006,
+      50.0,
+      110.0
+    ],
+    "bbox_min": [
+      -16.54362678527832,
+      -50.0,
+      0.0
+    ],
+    "sha256": "7e6c1b65063fa2a8a1081a238f2a398370c5f0c49a358b333c3eb3ad115476ac",
+    "triangles": 2556,
+    "volume": 117131.09963928882
+  },
+  "projects/desk_organizer/part.py::full#desk_organizer_full.stl": {
+    "area": 142361.15101382232,
+    "bbox_max": [
+      55.0,
+      50.0,
+      100.0
+    ],
+    "bbox_min": [
+      -55.0,
+      -50.0,
+      0.0
+    ],
+    "sha256": "e0a02a2decff3f79785f74887e7cf8ed85b3b1cbc39606c1f5d41c46085e467c",
+    "triangles": 4668,
+    "volume": 535929.5893589864
+  },
+  "projects/desk_organizer/part.py::peg#desk_organizer_peg.stl": {
+    "area": 245.00126376538526,
+    "bbox_max": [
+      3.0,
+      2.999067544937134,
+      10.0
+    ],
+    "bbox_min": [
+      -3.0,
+      -2.999067544937134,
+      0.0
+    ],
+    "sha256": "67858949f245a4754e3be7cbec5f69e72d432cadefe01efd79e36441fe953e2d",
+    "triangles": 500,
+    "volume": 282.6261714829965
+  },
+  "projects/desk_organizer/part.py::pen_insert#desk_organizer_pen_insert.stl": {
+    "area": 1976.6353721518183,
+    "bbox_max": [
+      7.199999809265137,
+      7.1977620124816895,
+      36.5
+    ],
+    "bbox_min": [
+      -7.199999809265137,
+      -7.1977620124816895,
+      0.0
+    ],
+    "sha256": "aef0ccd4dd982f6442680d52be2a8993fb05d080a5d6db1356c10857d992ee7f",
+    "triangles": 500,
+    "volume": 5941.932652264156
+  },
+  "projects/desk_organizer/part.py::pen_insert_short#desk_organizer_pen_insert_short.stl": {
+    "area": 1151.1103614804063,
+    "bbox_max": [
+      7.199999809265137,
+      7.1977620124816895,
+      18.25
+    ],
+    "bbox_min": [
+      -7.199999809265137,
+      -7.1977620124816895,
+      0.0
+    ],
+    "sha256": "d5166ec7357391064d53cb02e3f7fed33ecad4ca5a24872aa64dedebf8635c78",
+    "triangles": 500,
+    "volume": 2970.966326132078
+  },
+  "projects/desk_organizer/part.py::pockets#desk_organizer_pockets.stl": {
+    "area": 127921.15101382286,
+    "bbox_max": [
+      55.0,
+      50.0,
+      100.0
+    ],
+    "bbox_min": [
+      -55.0,
+      -50.0,
+      0.0
+    ],
+    "sha256": "ad82dcc9b88b2b8a49f62938a681cf8731518db836acbd84b5008a21001b1c03",
+    "triangles": 4652,
+    "volume": 627129.5893589882
+  },
+  "projects/desk_organizer/part.py::top#desk_organizer_top.stl": {
+    "area": 120395.93106892536,
+    "bbox_max": [
+      55.0,
+      50.0,
+      81.0
+    ],
+    "bbox_min": [
+      -55.0,
+      -50.0,
+      0.0
+    ],
+    "sha256": "287cb857ea59df5af21e851c9697673b0c7885cc149200193761254a32c32996",
+    "triangles": 6668,
+    "volume": 417591.36028704606
+  },
+  "projects/door_hook/part.py::full#door_hook_full.stl": {
+    "area": 81198.48510806594,
+    "bbox_max": [
+      41.0,
+      154.27169799804688,
+      100.0
+    ],
+    "bbox_min": [
+      -100.0,
+      -55.728302001953125,
+      1.0492917095644184e-14
+    ],
+    "sha256": "8a8380b566a9cad8ab2d28382afa8746d12bdc90c5d8bfbbde1ee2ef50c94e7c",
+    "triangles": 1580,
+    "volume": 118309.14555775336
+  },
+  "projects/door_hook/part.py::profile#door_hook_profile.stl": {
+    "area": 3942.828943615006,
+    "bbox_max": [
+      41.0,
+      105.27169799804688,
+      2.0
+    ],
+    "bbox_min": [
+      -100.0,
+      -104.72830200195312,
+      1.4045630774444685e-14
+    ],
+    "sha256": "65fe03244d6426defe54fb47631953255bb9bec79c5894db8957cbca5ef2015f",
+    "triangles": 1580,
+    "volume": 2366.182911154977
+  },
+  "projects/dust_port_adapter/adapter.py::full#dust_port_adapter_full.stl": {
+    "area": 34125.017562537774,
+    "bbox_max": [
+      78.30628967285156,
+      62.0,
+      88.75225830078125
+    ],
+    "bbox_min": [
+      -40.27260971069336,
+      -31.789873123168945,
+      0.0
+    ],
+    "sha256": "19800cb07cad4a88257edeb382f31bbea4abf264df941030b14406fb53709b76",
+    "triangles": 5514,
+    "volume": 45532.78012620346
+  },
+  "projects/dust_port_adapter/adapter.py::transition_test#dust_port_adapter_transition_test.stl": {
+    "area": 29244.455006613254,
+    "bbox_max": [
+      78.30628967285156,
+      62.0,
+      85.24317169189453
+    ],
+    "bbox_min": [
+      -25.16267967224121,
+      -19.128299713134766,
+      0.0
+    ],
+    "sha256": "5c7d28b89615115ca2e100a0ec73c81c60c154523a1875977d7ffc1f19846ed5",
+    "triangles": 3916,
+    "volume": 38272.91717572326
+  },
+  "projects/dust_port_adapter/faceplate.py#dust_port_faceplate.stl": {
+    "area": 7587.69825500631,
+    "bbox_max": [
+      78.30628967285156,
+      -1.9896864891052246,
+      8.0
+    ],
+    "bbox_min": [
+      -1.560844898223877,
+      -62.0,
+      0.0
+    ],
+    "sha256": "368063263ca641c033240202f231b532375fcdced6ce56c16ccee8c61ff48420",
+    "triangles": 2148,
+    "volume": 9396.0225231625
+  },
+  "projects/dust_port_adapter/profile_test.py#dust_port_outer_rim_profile.stl": {
+    "area": 2658.5026548480073,
+    "bbox_max": [
+      78.30628967285156,
+      62.0,
+      2.0
+    ],
+    "bbox_min": [
+      -1.560844898223877,
+      1.9896864891052246,
+      0.0
+    ],
+    "sha256": "22ae2bc102c44a266238dd387fede9cd77fdcb9717c041f71857601d4f863bcb",
+    "triangles": 1112,
+    "volume": 1771.3750726972646
+  },
+  "projects/fancy_pen_holder/part.py::base#fancy_pen_holder_base.stl": {
+    "area": 65484.817640950474,
+    "bbox_max": [
+      65.0,
+      70.0,
+      17.0
+    ],
+    "bbox_min": [
+      -65.0,
+      -70.0,
+      0.0
+    ],
+    "sha256": "e6a9a4db405302387eb5357b01d739fb38cbee65c2e89aa963693a5b547b1a54",
+    "triangles": 7292,
+    "volume": 190789.56449802095
+  },
+  "projects/fancy_pen_holder/part.py::lid#fancy_pen_holder_lid.stl": {
+    "area": 39231.533983211935,
+    "bbox_max": [
+      65.0,
+      70.0,
+      5.0
+    ],
+    "bbox_min": [
+      -65.0,
+      -70.0,
+      0.0
+    ],
+    "sha256": "93018dc6dabcb948d9c31406e8cd1732c3868f37d1bcc44bf67d4eabfd0969ff",
+    "triangles": 2540,
+    "volume": 90723.83037910145
+  },
+  "projects/interlocking_token_trays/holder.py::holder#interlocking_token_trays_holder.stl": {
+    "area": 136327.29496765952,
+    "bbox_max": [
+      44.0,
+      44.0,
+      229.0
+    ],
+    "bbox_min": [
+      -44.0,
+      -44.0,
+      0.0
+    ],
+    "sha256": "807d10fe0a6406fc33178a7c52666914c881e7c96ed1bee2ca36ab9275526b03",
+    "triangles": 1628,
+    "volume": 184886.53396858132
+  },
+  "projects/interlocking_token_trays/holder.py::shell#interlocking_token_trays_shell.stl": {
+    "area": 169510.1885373405,
+    "bbox_max": [
+      44.0,
+      44.0,
+      229.0
+    ],
+    "bbox_min": [
+      -44.0,
+      -44.0,
+      0.0
+    ],
+    "sha256": "fe147478413c3c1232cd36c1832d0a9f70eb07601c621692b4b503e64980b29e",
+    "triangles": 540,
+    "volume": 229106.0623322219
+  },
+  "projects/interlocking_token_trays/part.py::block#interlocking_token_trays_block.stl": {
+    "area": 25780.109122667454,
+    "bbox_max": [
+      40.0,
+      40.0,
+      14.0
+    ],
+    "bbox_min": [
+      -40.0,
+      -40.0,
+      -14.0
+    ],
+    "sha256": "c41dd4c4764ba5a54ff26efe5f8c55086f0326b87fb0bf3322fa87aee20b3a88",
+    "triangles": 3470,
+    "volume": 67335.79711726012
+  },
+  "projects/interlocking_token_trays/part.py::tray#interlocking_token_trays_tray.stl": {
+    "area": 27732.749493761214,
+    "bbox_max": [
+      40.0,
+      40.0,
+      14.0
+    ],
+    "bbox_min": [
+      -40.0,
+      -40.0,
+      -14.0
+    ],
+    "sha256": "ab539de2ac60d396228411276bcc99a3eba3ed5bdf82e04ae928561fe61ea8bc",
+    "triangles": 3566,
+    "volume": 65892.59648249426
+  },
+  "projects/interlocking_token_trays/part.py::tray_bottom#interlocking_token_trays_tray_bottom.stl": {
+    "area": 19576.859688885062,
+    "bbox_max": [
+      41.0,
+      40.0,
+      -2.0
+    ],
+    "bbox_min": [
+      -41.0,
+      -40.0,
+      -14.0
+    ],
+    "sha256": "d934707e30b449002a2de2e69703f008db80d65fd9256770c2afc1685569d64f",
+    "triangles": 52078,
+    "volume": 40667.137402165186
+  },
+  "projects/interlocking_token_trays/part.py::tray_keyed#interlocking_token_trays_tray_keyed.stl": {
+    "area": 27804.60299624555,
+    "bbox_max": [
+      41.0,
+      40.0,
+      14.0
+    ],
+    "bbox_min": [
+      -41.0,
+      -40.0,
+      -14.0
+    ],
+    "sha256": "37b6f8d3f7036debcfc179b7539553f49dee70ca1118ecdab7bb69d4d108c4eb",
+    "triangles": 52286,
+    "volume": 65828.3285067809
+  },
+  "projects/interlocking_token_trays/part.py::tray_top#interlocking_token_trays_tray_top.stl": {
+    "area": 12668.978930253028,
+    "bbox_max": [
+      40.0,
+      40.0,
+      14.0
+    ],
+    "bbox_min": [
+      -40.0,
+      -40.0,
+      -2.0
+    ],
+    "sha256": "40d3baa54017b6596f3a70253b966180d4fe33ea936de7fbb68e9a39baea81b5",
+    "triangles": 1776,
+    "volume": 25161.10834762273
+  },
+  "projects/rotating_bezel/part.py::bezel#rotating_bezel_bezel.stl": {
+    "area": 4045.470623045791,
+    "bbox_max": [
+      22.0,
+      21.993825912475586,
+      6.0
+    ],
+    "bbox_min": [
+      -22.0,
+      -21.993825912475586,
+      0.0
+    ],
+    "sha256": "e97666c41dd31a3953f965097542a22421df0780d55016320f1ee68a0de41892",
+    "triangles": 20356,
+    "volume": 4186.639204530439
+  },
+  "projects/rotating_bezel/part.py::pair#rotating_bezel_pair.stl": {
+    "area": 6984.604156865189,
+    "bbox_max": [
+      46.5,
+      21.993825912475586,
+      4.0
+    ],
+    "bbox_min": [
+      -46.5,
+      -21.993825912475586,
+      0.0
+    ],
+    "sha256": "02b8cf389ab69edbfbea502b31f6c3f814df820c2439ddfd8d1fdfd7bc0c05df",
+    "triangles": 2792,
+    "volume": 5148.088188562986
+  },
+  "projects/rotating_bezel/part.py::ring#rotating_bezel_ring.stl": {
+    "area": 3492.3020437914474,
+    "bbox_max": [
+      22.0,
+      21.993825912475586,
+      4.0
+    ],
+    "bbox_min": [
+      -22.0,
+      -21.993825912475586,
+      0.0
+    ],
+    "sha256": "c21b73d4c33dbf6e2163cca9be2d0ae399f83fe3b8ccad95e7355cc2b0e79ed1",
+    "triangles": 1396,
+    "volume": 2574.0441706572915
+  },
+  "projects/utility_card_sidecar/part.py::body#utility_card_sidecar_body.stl": {
+    "area": 70502.6801838581,
+    "bbox_max": [
+      40.0,
+      107.5,
+      70.0
+    ],
+    "bbox_min": [
+      -20.0,
+      -107.5,
+      0.0
+    ],
+    "sha256": "3d99e7d03003cf7d4c0591d91ab3e9c957c60033fa7097275d802a6a34c24a6f",
+    "triangles": 548,
+    "volume": 644259.2925427828
+  },
+  "projects/utility_card_sidecar/part.py::clip_test#utility_card_sidecar_clip_test.stl": {
+    "area": 34674.42479830194,
+    "bbox_max": [
+      40.0,
+      107.5,
+      20.0
+    ],
+    "bbox_min": [
+      -20.0,
+      -107.5,
+      0.0
+    ],
+    "sha256": "bcd24148f7f31c149d4d908844487c196854175562a1a6f9baefa80221a7f8d5",
+    "triangles": 548,
+    "volume": 189431.22644079506
+  },
+  "projects/utility_card_sidecar/part.py::full#utility_card_sidecar_full.stl": {
+    "area": 107900.17122157858,
+    "bbox_max": [
+      40.0,
+      107.5,
+      70.0
+    ],
+    "bbox_min": [
+      -20.0,
+      -107.5,
+      0.0
+    ],
+    "sha256": "e6ee2a040d399ecd7b43b5588a8a17e8f074f013962c45d5740beded59c90509",
+    "triangles": 3140,
+    "volume": 331106.05131248693
+  }
+}

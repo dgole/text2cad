@@ -41,6 +41,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import on_build_plate, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
@@ -236,7 +237,7 @@ def _build_hook(
 
     # Apply fillets to exposed edges where possible
     # Fillet the outer vertical edges (parallel to Y) for a nicer look
-    safe_fillet = min(fillet, wall / 2 - 0.01, platform_thickness / 2 - 0.01)
+    safe_fillet = safe_fillet_radius(fillet, wall, platform_thickness)
     if safe_fillet > 0.2:
         try:
             hook = hook.edges("|Y").fillet(safe_fillet)
@@ -249,14 +250,6 @@ def _build_hook(
 # ---------------------------------------------------------------------------
 # Build stages
 # ---------------------------------------------------------------------------
-
-def _move_to_build_plate(body: cq.Workplane) -> cq.Workplane:
-    """Translate body so its bounding box sits on Z=0."""
-    bb = body.val().BoundingBox()
-    if abs(bb.zmin) > 0.001:
-        body = body.translate((0, 0, -bb.zmin))
-    return body
-
 
 def build_profile(
     door_thickness: float = DOOR_THICKNESS,
@@ -290,7 +283,7 @@ def build_profile(
     )
     # Rotate 90° around X axis to lay the cross-section flat
     hook = hook.rotateAboutCenter((1, 0, 0), -90)
-    hook = _move_to_build_plate(hook)
+    hook = on_build_plate(hook)
     return hook
 
 
@@ -325,7 +318,7 @@ def build_full(
         fillet=fillet,
     )
     hook = hook.rotateAboutCenter((1, 0, 0), -90)
-    hook = _move_to_build_plate(hook)
+    hook = on_build_plate(hook)
     return hook
 
 

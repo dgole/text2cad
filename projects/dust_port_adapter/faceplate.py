@@ -39,6 +39,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import on_build_plate  # noqa: E402
 
 # Import geometry helpers from the profile test module
 from profile_test import _build_quad_solid, _offset_vertices_inward  # noqa: E402
@@ -168,9 +169,7 @@ def build_faceplate(
     if flip_for_print:
         # Flip upside-down so the cap is on the bottom (print-bed side) and the
         # walls open upward.  Then shift so the lowest point sits at Z = 0.
-        result = result.rotate((0, 0, 0), (1, 0, 0), 180)
-        bb = result.val().BoundingBox()
-        result = result.translate((0, 0, -bb.zmin))
+        result = on_build_plate(result.rotate((0, 0, 0), (1, 0, 0), 180))
 
     return result
 

@@ -40,6 +40,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
 from cad.export import to_stl  # noqa: E402
+from cad.geometry import filleted_box, on_build_plate, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parameters
@@ -116,19 +117,6 @@ def _pin_positions(width: float, depth: float,
     return [(-hx, -hy), (-hx, hy), (hx, -hy), (hx, hy)]
 
 
-def _make_box(width: float, depth: float, height: float,
-              fillet: float) -> cq.Workplane:
-    """Rectangular prism with filleted vertical edges, base at Z=0."""
-    body = (
-        cq.Workplane("XY")
-        .box(width, depth, height, centered=(True, True, False))
-    )
-    safe_fillet = min(fillet, min(width, depth) / 2 - 0.01)
-    if safe_fillet > 0.01:
-        body = body.edges("|Z").fillet(safe_fillet)
-    return body
-
-
 def _cut_remote_pockets(
     body: cq.Workplane,
     top_z: float,
@@ -161,7 +149,7 @@ def _cut_remote_pockets(
 
     for (sw, sd, spd, sf) in slots:
         rx = cursor_x + sw / 2  # center of this slot
-        safe_rf = min(sf, min(sw, sd) / 2 - 0.01)
+        safe_rf = safe_fillet_radius(sf, sw, sd)
         pocket = (
             cq.Workplane("XY")
             .workplane(offset=top_z)
@@ -252,12 +240,6 @@ def _cut_pin_holes(
     return body
 
 
-def _move_to_build_plate(body: cq.Workplane) -> cq.Workplane:
-    """Translate body so its bounding box sits on Z=0."""
-    bb = body.val().BoundingBox()
-    if abs(bb.zmin) > 0.001:
-        body = body.translate((0, 0, -bb.zmin))
-    return body
 
 
 # ---------------------------------------------------------------------------
@@ -272,7 +254,7 @@ def build_body(
     **_kw,
 ) -> cq.Workplane:
     """Stage: solid rectangular block — check overall size."""
-    return _make_box(width, depth, height, fillet)
+    return filleted_box(width, depth, height, fillet)
 
 
 def build_pockets(
@@ -298,7 +280,7 @@ def build_pockets(
     **_kw,
 ) -> cq.Workplane:
     """Stage: body with remote & pen pockets cut from the top."""
-    body = _make_box(width, depth, height, fillet)
+    body = filleted_box(width, depth, height, fillet)
     body = _cut_remote_pockets(
         body, height,
         remote_long_count, remote_long_width, remote_long_depth,
@@ -396,7 +378,7 @@ def build_bottom(
     Rotated 90° around the Y axis so the phone slot openings (+X face)
     point up.  Print in this orientation — no overhangs.
     """
-    body = _make_box(width, depth, split_z, fillet)
+    body = filleted_box(width, depth, split_z, fillet)
 
     # Cut phone slots
     body = _cut_phone_slots(
@@ -416,7 +398,7 @@ def build_bottom(
     # Rotate so phone openings (+X) face up: -90° around Y axis
     # (+X becomes +Z, +Z becomes -X)
     body = body.rotateAboutCenter((0, 1, 0), -90)
-    body = _move_to_build_plate(body)
+    body = on_build_plate(body)
 
     return body
 
@@ -457,7 +439,7 @@ def build_top(
     split face (with pin holes) is on top.  Print in this orientation.
     """
     top_height = height - split_z
-    body = _make_box(width, depth, top_height, fillet)
+    body = filleted_box(width, depth, top_height, fillet)
 
     # Cut remote & pen pockets from the top (which is at Z = top_height)
     body = _cut_remote_pockets(
