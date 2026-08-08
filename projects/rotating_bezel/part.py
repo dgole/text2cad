@@ -21,8 +21,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -31,17 +29,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -242,46 +236,21 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()),
-                        help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
+PARAMS = {
+    # Ring geometry
+    "ring_od": (RING_OD, "Ring outer diameter"),
+    "ring_id": (RING_ID, "Ring inner diameter (bore)"),
+    "ring_height": (RING_HEIGHT, "Ring height (floor + magnet + ceiling)"),
 
-    # Ring geometry overrides
-    parser.add_argument("--ring-od", type=float, default=RING_OD,
-                        help="Ring outer diameter")
-    parser.add_argument("--ring-id", type=float, default=RING_ID,
-                        help="Ring inner diameter (bore)")
-    parser.add_argument("--ring-height", type=float, default=RING_HEIGHT,
-                        help="Ring height (floor + magnet + ceiling)")
-
-    # Magnet overrides
-    parser.add_argument("--magnet-diameter", type=float, default=MAGNET_DIAMETER,
-                        help="Magnet diameter")
-    parser.add_argument("--magnet-height", type=float, default=MAGNET_HEIGHT,
-                        help="Magnet height")
-    parser.add_argument("--magnet-clearance", type=float, default=MAGNET_CLEARANCE,
-                        help="Extra slot width for fit")
-    parser.add_argument("--num-magnets", type=int, default=NUM_MAGNETS,
-                        help="Number of magnet positions")
-    parser.add_argument("--slot-depth", type=float, default=SLOT_DEPTH,
-                        help="Radial depth of magnet slot into wall")
-
-    args = parser.parse_args()
-
-    kw = {k.replace("-", "_"): v for k, v in vars(args).items()
-          if k not in ("stage", "output_dir")}
-    kw["magnet_floor"] = MAGNET_FLOOR
-
-    body = STAGES[args.stage](**kw)
-
-    name = f"rotating_bezel_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+    # Magnets
+    "magnet_diameter": (MAGNET_DIAMETER, "Magnet diameter"),
+    "magnet_height": (MAGNET_HEIGHT, "Magnet height"),
+    "magnet_clearance": (MAGNET_CLEARANCE, "Extra slot width for fit"),
+    "magnet_floor": (MAGNET_FLOOR, "Plastic thickness below and above the magnet"),
+    "num_magnets": (NUM_MAGNETS, "Number of magnet positions", int),
+    "slot_depth": (SLOT_DEPTH, "Radial depth of magnet slot into wall"),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

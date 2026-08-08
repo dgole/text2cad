@@ -19,8 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -28,18 +26,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import filleted_box, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -325,50 +319,33 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()),
-                        help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
+PARAMS = {
+    # Body
+    "width": BODY_WIDTH,
+    "length": BODY_LENGTH,
+    "height": BODY_HEIGHT,
+    "fillet": FILLET_RADIUS,
+    "floor_thickness": FLOOR_THICKNESS,
+    "wall": WALL_THICKNESS,
 
-    # Body overrides
-    parser.add_argument("--width", type=float, default=BODY_WIDTH)
-    parser.add_argument("--length", type=float, default=BODY_LENGTH)
-    parser.add_argument("--height", type=float, default=BODY_HEIGHT)
-    parser.add_argument("--fillet", type=float, default=FILLET_RADIUS)
-    parser.add_argument("--floor-thickness", type=float, default=FLOOR_THICKNESS)
-    parser.add_argument("--wall", type=float, default=WALL_THICKNESS)
+    # Remote slots
+    "big_width": BIG_REMOTE_WIDTH,
+    "big_length": BIG_REMOTE_LENGTH,
+    "big_count": (BIG_REMOTE_COUNT, None, int),
+    "small_width": SMALL_REMOTE_WIDTH,
+    "small_length": SMALL_REMOTE_LENGTH,
+    "small_count": (SMALL_REMOTE_COUNT, None, int),
 
-    # Remote slot overrides
-    parser.add_argument("--big-width", type=float, default=BIG_REMOTE_WIDTH)
-    parser.add_argument("--big-length", type=float, default=BIG_REMOTE_LENGTH)
-    parser.add_argument("--big-count", type=int, default=BIG_REMOTE_COUNT)
-    parser.add_argument("--small-width", type=float, default=SMALL_REMOTE_WIDTH)
-    parser.add_argument("--small-length", type=float, default=SMALL_REMOTE_LENGTH)
-    parser.add_argument("--small-count", type=int, default=SMALL_REMOTE_COUNT)
+    # Pens
+    "pen_diameter": PEN_DIAMETER,
+    "pen_count": (PEN_COUNT, None, int),
 
-    # Pen overrides
-    parser.add_argument("--pen-diameter", type=float, default=PEN_DIAMETER)
-    parser.add_argument("--pen-count", type=int, default=PEN_COUNT)
-
-    # Hook overrides
-    parser.add_argument("--hook-gap", type=float, default=HOOK_GAP)
-    parser.add_argument("--lip-height", type=float, default=HOOK_LIP_HEIGHT)
-    parser.add_argument("--hook-thickness", type=float, default=HOOK_THICKNESS)
-
-    args = parser.parse_args()
-
-    kw = {k.replace("-", "_"): v for k, v in vars(args).items()
-          if k not in ("stage", "output_dir")}
-
-    body = STAGES[args.stage](**kw)
-
-    name = f"utility_card_sidecar_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+    # Hook
+    "hook_gap": HOOK_GAP,
+    "lip_height": HOOK_LIP_HEIGHT,
+    "hook_thickness": HOOK_THICKNESS,
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

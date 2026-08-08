@@ -233,6 +233,21 @@ def main() -> int:
                   f"{len({k.split('/')[1] for k, *_ in results})} projects.")
             return 0
 
+        # Two scripts in one project sharing a stage name would write the same
+        # filename into the same output/ dir, and the loser would vanish
+        # silently. Isolated build dirs hide that, so check for it explicitly.
+        produced: Dict[Tuple[str, str], List[str]] = {}
+        for key, _ok, _msg, stls in results:
+            project = Path(key).parent.name
+            for stl in stls:
+                produced.setdefault((project, stl.name), []).append(key)
+        clashes = {k: v for k, v in produced.items() if len(v) > 1}
+        if clashes:
+            for (project, filename), keys in sorted(clashes.items()):
+                print(f"COLLISION  {project}/output/{filename} written by: {', '.join(keys)}")
+            print(f"\n{len(clashes)} output filename collision(s).")
+            return 1
+
         # Measure everything that was produced
         current: Dict[str, Dict] = {}
         for key, _ok, _msg, stls in results:

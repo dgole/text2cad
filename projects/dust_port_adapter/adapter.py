@@ -18,17 +18,16 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import math
 import sys
+from functools import partial
 from pathlib import Path
 from typing import List, Tuple
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import on_build_plate  # noqa: E402
 
 # Import builders from sibling modules
@@ -39,11 +38,7 @@ from profile_test import _build_quad_solid, _fillet_corner  # noqa: E402
 # Load config
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config
@@ -551,66 +546,31 @@ def build_adapter(
 # Stage registry
 # ---------------------------------------------------------------------------
 
+# ---------------------------------------------------------------------------
+# Stage registry
+# ---------------------------------------------------------------------------
+
+# build_adapter() takes the stage as an argument, so bind it per stage. The
+# stage descriptions live in this module's docstring, which is the CLI help.
 STAGES = {
-    "transition_test": "Faceplate + angled transition (quad → circle)",
-    "full": "Complete adapter: faceplate + angled transition + hose socket",
+    "transition_test": partial(build_adapter, stage="transition_test"),
+    "full": partial(build_adapter, stage="full"),
+}
+
+PARAMS = {
+    "hose_od": (HOSE_OD, "Hose outer diameter (mm)."),
+    "hose_tolerance": HOSE_TOLERANCE,
+    "socket_depth": SOCKET_DEPTH,
+    "tube_wall": TUBE_WALL,
+    "tube_length": (TUBE_LENGTH, "Transition tube length along path (mm)."),
+    "exit_angle_deg": (EXIT_ANGLE_DEG, "Angle of the tube exit from vertical (degrees)."),
+    "path_angle_deg": (PATH_ANGLE_DEG, "Angle of travel from vertical (degrees)."),
+    "exit_direction_deg": (EXIT_DIRECTION_DEG,
+                           "Horizontal direction (degrees). 0=toward A-D, positive=toward A-B."),
+    "num_stations": (NUM_LOFT_STATIONS, "Number of intermediate cross-sections.", int),
+    "num_points": (NUM_PROFILE_POINTS, "Points sampled around each cross-section.", int),
 }
 
 
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
-
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument(
-        "stage",
-        choices=STAGES.keys(),
-        help="Build stage: " + "; ".join(
-            f"{k} = {v}" for k, v in STAGES.items()
-        ),
-    )
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-    parser.add_argument("--hose-od", type=float, default=HOSE_OD,
-                        help="Hose outer diameter (mm).")
-    parser.add_argument("--hose-tolerance", type=float, default=HOSE_TOLERANCE)
-    parser.add_argument("--socket-depth", type=float, default=SOCKET_DEPTH)
-    parser.add_argument("--tube-wall", type=float, default=TUBE_WALL)
-    parser.add_argument("--tube-length", type=float, default=TUBE_LENGTH,
-                        help="Transition tube length along path (mm).")
-    parser.add_argument("--exit-angle-deg", type=float, default=EXIT_ANGLE_DEG,
-                        help="Angle of the tube exit from vertical (degrees).")
-    parser.add_argument("--path-angle-deg", type=float, default=PATH_ANGLE_DEG,
-                        help="Angle of travel from vertical (degrees).")
-    parser.add_argument("--exit-direction-deg", type=float, default=EXIT_DIRECTION_DEG,
-                        help="Horizontal direction (degrees). 0=toward A-D, positive=toward A-B.")
-    parser.add_argument("--num-stations", type=int, default=NUM_LOFT_STATIONS)
-    parser.add_argument("--num-points", type=int, default=NUM_PROFILE_POINTS)
-
-    args = parser.parse_args()
-
-    print(f"Building stage: {args.stage} — {STAGES[args.stage]}")
-    body = build_adapter(
-        stage=args.stage,
-        hose_od=args.hose_od,
-        hose_tolerance=args.hose_tolerance,
-        socket_depth=args.socket_depth,
-        tube_wall=args.tube_wall,
-        tube_length=args.tube_length,
-        exit_angle_deg=args.exit_angle_deg,
-        path_angle_deg=args.path_angle_deg,
-        exit_direction_deg=args.exit_direction_deg,
-        num_stations=args.num_stations,
-        num_points=args.num_points,
-    )
-
-    name = f"dust_port_adapter_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
-    print(f"Done → {Path(args.output_dir) / (name + '.stl')}")
-
-
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

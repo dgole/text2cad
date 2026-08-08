@@ -31,8 +31,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -40,18 +38,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import on_build_plate, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -336,37 +330,19 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()),
-                        help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-
-    # Overrides
-    parser.add_argument("--door-thickness", type=float, default=DOOR_THICKNESS)
-    parser.add_argument("--wall", type=float, default=WALL)
-    parser.add_argument("--front-lip-height", type=float, default=FRONT_LIP_HEIGHT)
-    parser.add_argument("--front-lip-extension", type=float, default=FRONT_LIP_EXTENSION)
-    parser.add_argument("--back-lip-height", type=float, default=BACK_LIP_HEIGHT)
-    parser.add_argument("--width", type=float, default=WIDTH)
-    parser.add_argument("--platform-length", type=float, default=PLATFORM_LENGTH)
-    parser.add_argument("--platform-thickness", type=float, default=PLATFORM_THICKNESS)
-    parser.add_argument("--gap-clearance", type=float, default=GAP_CLEARANCE)
-    parser.add_argument("--fillet", type=float, default=FILLET)
-
-    args = parser.parse_args()
-
-    kw = {k.replace("-", "_"): v for k, v in vars(args).items()
-          if k not in ("stage", "output_dir")}
-
-    body = STAGES[args.stage](**kw)
-
-    name = f"door_hook_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+PARAMS = {
+    "door_thickness": DOOR_THICKNESS,
+    "wall": WALL,
+    "front_lip_height": FRONT_LIP_HEIGHT,
+    "front_lip_extension": FRONT_LIP_EXTENSION,
+    "back_lip_height": BACK_LIP_HEIGHT,
+    "width": WIDTH,
+    "platform_length": PLATFORM_LENGTH,
+    "platform_thickness": PLATFORM_THICKNESS,
+    "gap_clearance": GAP_CLEARANCE,
+    "fillet": FILLET,
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

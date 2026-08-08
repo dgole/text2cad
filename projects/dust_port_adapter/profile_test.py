@@ -29,8 +29,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -39,17 +37,13 @@ from typing import List, Tuple
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -316,54 +310,34 @@ def build_profile_plate(
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
+# ---------------------------------------------------------------------------
+# Stage registry
+# ---------------------------------------------------------------------------
 
-    # Vertex positions
-    parser.add_argument("--ax", type=float, default=AX)
-    parser.add_argument("--ay", type=float, default=AY)
-    parser.add_argument("--bx", type=float, default=BX)
-    parser.add_argument("--by", type=float, default=BY)
-    parser.add_argument("--cx", type=float, default=CX)
-    parser.add_argument("--cy", type=float, default=CY)
-    parser.add_argument("--dx", type=float, default=DX)
-    parser.add_argument("--dy", type=float, default=DY)
+STAGES = {
+    "profile": build_profile_plate,
+}
 
-    # Fillets
-    parser.add_argument("--fillet-a", type=float, default=FILLET_A)
-    parser.add_argument("--fillet-b", type=float, default=FILLET_B)
-    parser.add_argument("--fillet-c", type=float, default=FILLET_C)
-    parser.add_argument("--fillet-d", type=float, default=FILLET_D)
+PARAMS = {
+    # Vertex positions of the rim quadrilateral
+    "ax": AX, "ay": AY,
+    "bx": BX, "by": BY,
+    "cx": CX, "cy": CY,
+    "dx": DX, "dy": DY,
+
+    # Corner fillets
+    "fillet_a": FILLET_A,
+    "fillet_b": FILLET_B,
+    "fillet_c": FILLET_C,
+    "fillet_d": FILLET_D,
 
     # Edge curvature
-    parser.add_argument("--ab-bulge", type=float, default=AB_BULGE,
-                        help="Inward bulge (sagitta, mm) for the A→B edge. 0=straight.")
+    "ab_bulge": (AB_BULGE, "Inward bulge (sagitta, mm) for the A-B edge. 0 = straight."),
 
-    parser.add_argument("--wall", type=float, default=WALL)
-    parser.add_argument("--thickness", type=float, default=THICKNESS)
-
-    args = parser.parse_args()
-
-    body = build_profile_plate(
-        ax=args.ax, ay=args.ay,
-        bx=args.bx, by=args.by,
-        cx=args.cx, cy=args.cy,
-        dx=args.dx, dy=args.dy,
-        fillet_a=args.fillet_a,
-        fillet_b=args.fillet_b,
-        fillet_c=args.fillet_c,
-        fillet_d=args.fillet_d,
-        ab_bulge=args.ab_bulge,
-        wall=args.wall,
-        thickness=args.thickness,
-    )
-
-    to_stl(body, "dust_port_outer_rim_profile", output_dir=args.output_dir)
+    "wall": (WALL, "Wall thickness (outward from inner edge)."),
+    "thickness": (THICKNESS, "Plate thickness of the test piece."),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

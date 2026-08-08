@@ -30,8 +30,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -39,18 +37,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import filleted_box, on_build_plate, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parameters
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -553,75 +547,47 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()),
-                        help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
+PARAMS = {
+    # Body
+    "width": (BODY_WIDTH, "Overall body width (X)"),
+    "depth": (BODY_DEPTH, "Overall body depth (Y)"),
+    "height": (BODY_HEIGHT, "Overall body height (Z)"),
+    "wall": (BODY_WALL, "Shell wall thickness"),
+    "fillet": (BODY_FILLET, "Vertical edge fillet radius"),
 
-    # Body overrides
-    parser.add_argument("--width", type=float, default=BODY_WIDTH,
-                        help="Overall body width (X)")
-    parser.add_argument("--depth", type=float, default=BODY_DEPTH,
-                        help="Overall body depth (Y)")
-    parser.add_argument("--height", type=float, default=BODY_HEIGHT,
-                        help="Overall body height (Z)")
-    parser.add_argument("--wall", type=float, default=BODY_WALL,
-                        help="Shell wall thickness")
-    parser.add_argument("--fillet", type=float, default=BODY_FILLET,
-                        help="Vertical edge fillet radius")
+    # Remote slots — long
+    "remote_long_count": (REMOTE_LONG_COUNT, None, int),
+    "remote_long_width": REMOTE_LONG_WIDTH,
+    "remote_long_depth": REMOTE_LONG_DEPTH,
+    "remote_long_pocket_depth": REMOTE_LONG_POCKET_DEPTH,
 
-    # Remote slot overrides — long
-    parser.add_argument("--remote-long-count", type=int, default=REMOTE_LONG_COUNT)
-    parser.add_argument("--remote-long-width", type=float, default=REMOTE_LONG_WIDTH)
-    parser.add_argument("--remote-long-depth", type=float, default=REMOTE_LONG_DEPTH)
-    parser.add_argument("--remote-long-pocket-depth", type=float, default=REMOTE_LONG_POCKET_DEPTH)
+    # Remote slots — short
+    "remote_short_count": (REMOTE_SHORT_COUNT, None, int),
+    "remote_short_width": REMOTE_SHORT_WIDTH,
+    "remote_short_depth": REMOTE_SHORT_DEPTH,
+    "remote_short_pocket_depth": REMOTE_SHORT_POCKET_DEPTH,
 
-    # Remote slot overrides — short
-    parser.add_argument("--remote-short-count", type=int, default=REMOTE_SHORT_COUNT)
-    parser.add_argument("--remote-short-width", type=float, default=REMOTE_SHORT_WIDTH)
-    parser.add_argument("--remote-short-depth", type=float, default=REMOTE_SHORT_DEPTH)
-    parser.add_argument("--remote-short-pocket-depth", type=float, default=REMOTE_SHORT_POCKET_DEPTH)
+    # Remote layout
+    "remote_spacing": REMOTE_SPACING,
 
-    # Remote layout overrides
-    parser.add_argument("--remote-spacing", type=float, default=REMOTE_SPACING)
+    # Pen slots
+    "pen_diameter": PEN_DIAMETER,
+    "pen_pocket_depth": PEN_POCKET_DEPTH,
 
-    # Pen slot overrides
-    parser.add_argument("--pen-diameter", type=float, default=PEN_DIAMETER)
-    parser.add_argument("--pen-pocket-depth", type=float, default=PEN_POCKET_DEPTH)
+    # Split / alignment pins
+    "split_z": (SPLIT_Z, "Z height where body splits into two halves"),
+    "pin_diameter": PIN_DIAMETER,
+    "pin_height": PIN_HEIGHT,
 
-    # Split overrides
-    parser.add_argument("--split-z", type=float, default=SPLIT_Z,
-                        help="Z height where body splits into two halves")
-    parser.add_argument("--pin-diameter", type=float, default=PIN_DIAMETER)
-    parser.add_argument("--pin-height", type=float, default=PIN_HEIGHT)
-
-    # Phone slot overrides
-    parser.add_argument("--phone-count", type=int, default=PHONE_COUNT)
-    parser.add_argument("--phone-width", type=float, default=PHONE_WIDTH,
-                        help="Width of slot opening on the side face (Y)")
-    parser.add_argument("--phone-gap-bottom", type=float, default=PHONE_GAP_BOTTOM,
-                        help="Height of bottom slot opening (Z)")
-    parser.add_argument("--phone-gap-top", type=float, default=PHONE_GAP_TOP,
-                        help="Height of top slot opening (Z)")
-    parser.add_argument("--phone-interior-length", type=float, default=PHONE_INTERIOR_LENGTH,
-                        help="How far the phone extends into the body (X)")
-
-    args = parser.parse_args()
-
-    # Build a kwargs dict from all CLI args — stage functions use **_kw to
-    # ignore parameters they don't care about.
-    kw = {k.replace("-", "_"): v for k, v in vars(args).items()
-          if k not in ("stage", "output_dir")}
-
-    body = STAGES[args.stage](**kw)
-
-    name = f"desk_organizer_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+    # Phone slots
+    "phone_count": (PHONE_COUNT, None, int),
+    "phone_width": (PHONE_WIDTH, "Width of slot opening on the side face (Y)"),
+    "phone_gap_bottom": (PHONE_GAP_BOTTOM, "Height of bottom slot opening (Z)"),
+    "phone_gap_top": (PHONE_GAP_TOP, "Height of top slot opening (Z)"),
+    "phone_interior_length": (PHONE_INTERIOR_LENGTH,
+                              "How far the phone extends into the body (X)"),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

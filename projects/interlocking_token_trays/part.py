@@ -13,8 +13,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import math
 import sys
 from pathlib import Path
@@ -23,17 +21,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -391,34 +385,18 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()), help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-    parser.add_argument("--body-x", type=float, default=BODY_X, help="Body width in X (mm).")
-    parser.add_argument("--body-y", type=float, default=BODY_Y, help="Body depth in Y (mm).")
-    parser.add_argument("--body-z", type=float, default=BODY_Z, help="Body height in Z (mm).")
-    parser.add_argument("--wall", type=float, default=WALL_THICKNESS, help="Wall thickness (mm).")
-    parser.add_argument("--floor", type=float, default=FLOOR_THICKNESS, help="Floor thickness (mm).")
-    parser.add_argument("--taper", type=float, default=CAVITY_TAPER, help="Per-side inward offset at cavity floor (mm).")
-    parser.add_argument("--fillet-outer", type=float, default=FILLET_OUTER, help="Outer vertical edge fillet radius (mm).")
-    parser.add_argument("--fillet-inner", type=float, default=FILLET_INNER, help="Inner floor edge fillet radius (mm).")
-    parser.add_argument("--fillet-inner-vert", type=float, default=FILLET_INNER_VERTICAL, help="Inner vertical edge fillet radius (mm).")
-    args = parser.parse_args()
-
-    builder = STAGES[args.stage]
-    body = builder(
-        body_x=args.body_x, body_y=args.body_y, body_z=args.body_z,
-        wall=args.wall, floor=args.floor, taper=args.taper,
-        fillet_outer=args.fillet_outer, fillet_inner=args.fillet_inner,
-        fillet_inner_vert=args.fillet_inner_vert,
-    )
-    name = f"{Path(__file__).parent.name}_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+PARAMS = {
+    "body_x": (BODY_X, "Body width in X (mm)."),
+    "body_y": (BODY_Y, "Body depth in Y (mm)."),
+    "body_z": (BODY_Z, "Body height in Z (mm)."),
+    "wall": (WALL_THICKNESS, "Wall thickness (mm)."),
+    "floor": (FLOOR_THICKNESS, "Floor thickness (mm)."),
+    "taper": (CAVITY_TAPER, "Per-side inward offset at cavity floor (mm)."),
+    "fillet_outer": (FILLET_OUTER, "Outer vertical edge fillet radius (mm)."),
+    "fillet_inner": (FILLET_INNER, "Inner floor edge fillet radius (mm)."),
+    "fillet_inner_vert": (FILLET_INNER_VERTICAL, "Inner vertical edge fillet radius (mm)."),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

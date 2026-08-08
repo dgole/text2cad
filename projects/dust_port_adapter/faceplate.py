@@ -30,15 +30,13 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import on_build_plate  # noqa: E402
 
 # Import geometry helpers from the profile test module
@@ -48,11 +46,7 @@ from profile_test import _build_quad_solid, _offset_vertices_inward  # noqa: E40
 # Load config
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -178,88 +172,47 @@ def build_faceplate(
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
+# ---------------------------------------------------------------------------
+# Stage registry
+# ---------------------------------------------------------------------------
 
-    # Vertex positions
-    parser.add_argument("--ax", type=float, default=AX)
-    parser.add_argument("--ay", type=float, default=AY)
-    parser.add_argument("--bx", type=float, default=BX)
-    parser.add_argument("--by", type=float, default=BY)
-    parser.add_argument("--cx", type=float, default=CX)
-    parser.add_argument("--cy", type=float, default=CY)
-    parser.add_argument("--dx", type=float, default=DX)
-    parser.add_argument("--dy", type=float, default=DY)
+STAGES = {
+    "faceplate": build_faceplate,
+}
 
-    # Fillets
-    parser.add_argument("--fillet-a", type=float, default=FILLET_A)
-    parser.add_argument("--fillet-b", type=float, default=FILLET_B)
-    parser.add_argument("--fillet-c", type=float, default=FILLET_C)
-    parser.add_argument("--fillet-d", type=float, default=FILLET_D)
+PARAMS = {
+    # Vertex positions of the rim quadrilateral
+    "ax": AX, "ay": AY,
+    "bx": BX, "by": BY,
+    "cx": CX, "cy": CY,
+    "dx": DX, "dy": DY,
+
+    # Corner fillets
+    "fillet_a": FILLET_A,
+    "fillet_b": FILLET_B,
+    "fillet_c": FILLET_C,
+    "fillet_d": FILLET_D,
 
     # Edge curvature
-    parser.add_argument("--ab-bulge", type=float, default=AB_BULGE,
-                        help="Inward bulge (sagitta, mm) for the A→B edge.")
+    "ab_bulge": (AB_BULGE, "Inward bulge (sagitta, mm) for the A-B edge. 0 = straight."),
 
-    # Wall / structure
-    parser.add_argument("--wall", type=float, default=WALL,
-                        help="Wall thickness (outward from inner edge).")
-    parser.add_argument("--wall-height", type=float, default=WALL_HEIGHT,
-                        help="Height of the walls that wrap around the rim.")
-    parser.add_argument("--cap-thickness", type=float, default=CAP_THICKNESS,
-                        help="Thickness of the solid cap on top.")
+    "wall": (WALL, "Wall thickness (outward from inner edge)."),
+    "wall_height": (WALL_HEIGHT, "Height of the walls that wrap around the rim."),
+    "cap_thickness": (CAP_THICKNESS, "Thickness of the solid cap on top."),
 
     # Screw hole
-    parser.add_argument("--screw-x", type=float, default=SCREW_X,
-                        help="Screw hole center X coordinate.")
-    parser.add_argument("--screw-y", type=float, default=SCREW_Y,
-                        help="Screw hole center Y coordinate.")
-    parser.add_argument("--screw-diameter", type=float, default=SCREW_DIAMETER,
-                        help="Screw hole diameter.")
+    "screw_x": (SCREW_X, "Screw hole center X coordinate."),
+    "screw_y": (SCREW_Y, "Screw hole center Y coordinate."),
+    "screw_diameter": (SCREW_DIAMETER, "Screw hole diameter."),
 
-    # Port hole (quadrilateral cutout)
-    parser.add_argument("--port-hole-ax", type=float, default=PORT_HOLE_AX)
-    parser.add_argument("--port-hole-ay", type=float, default=PORT_HOLE_AY)
-    parser.add_argument("--port-hole-bx", type=float, default=PORT_HOLE_BX)
-    parser.add_argument("--port-hole-by", type=float, default=PORT_HOLE_BY)
-    parser.add_argument("--port-hole-cx", type=float, default=PORT_HOLE_CX)
-    parser.add_argument("--port-hole-cy", type=float, default=PORT_HOLE_CY)
-    parser.add_argument("--port-hole-dx", type=float, default=PORT_HOLE_DX)
-    parser.add_argument("--port-hole-dy", type=float, default=PORT_HOLE_DY)
-    parser.add_argument("--port-hole-fillet", type=float, default=PORT_HOLE_FILLET,
-                        help="Fillet radius for port hole corners.")
-
-    args = parser.parse_args()
-
-    body = build_faceplate(
-        ax=args.ax, ay=args.ay,
-        bx=args.bx, by=args.by,
-        cx=args.cx, cy=args.cy,
-        dx=args.dx, dy=args.dy,
-        fillet_a=args.fillet_a,
-        fillet_b=args.fillet_b,
-        fillet_c=args.fillet_c,
-        fillet_d=args.fillet_d,
-        ab_bulge=args.ab_bulge,
-        wall=args.wall,
-        wall_height=args.wall_height,
-        cap_thickness=args.cap_thickness,
-        screw_x=args.screw_x,
-        screw_y=args.screw_y,
-        screw_diameter=args.screw_diameter,
-        port_hole_ax=args.port_hole_ax, port_hole_ay=args.port_hole_ay,
-        port_hole_bx=args.port_hole_bx, port_hole_by=args.port_hole_by,
-        port_hole_cx=args.port_hole_cx, port_hole_cy=args.port_hole_cy,
-        port_hole_dx=args.port_hole_dx, port_hole_dy=args.port_hole_dy,
-        port_hole_fillet=args.port_hole_fillet,
-    )
-
-    to_stl(body, "dust_port_faceplate", output_dir=args.output_dir)
+    # Port hole (quadrilateral cutout in the cap)
+    "port_hole_ax": PORT_HOLE_AX, "port_hole_ay": PORT_HOLE_AY,
+    "port_hole_bx": PORT_HOLE_BX, "port_hole_by": PORT_HOLE_BY,
+    "port_hole_cx": PORT_HOLE_CX, "port_hole_cy": PORT_HOLE_CY,
+    "port_hole_dx": PORT_HOLE_DX, "port_hole_dy": PORT_HOLE_DY,
+    "port_hole_fillet": (PORT_HOLE_FILLET, "Fillet radius for port hole corners."),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

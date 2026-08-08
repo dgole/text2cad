@@ -12,25 +12,21 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
 # Add repo root to path so we can import cad.*
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
-from cad.export import to_stl  # noqa: E402
+import cadquery as cq  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
+from cad.geometry import filleted_box, on_build_plate, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -46,11 +42,14 @@ OUTPUT_DIR = Path(__file__).parent / "output"
 # Build stages
 # ---------------------------------------------------------------------------
 
-# Define functions that return cadquery Workplane objects.
-# Name them after what they produce — the CLI will pick them up from STAGES.
+# Define functions that return cadquery Workplane objects. Name them after
+# what they produce — the CLI picks them up from STAGES.
 #
-# def test_plate(width=WIDTH, height=HEIGHT, ...) -> cq.Workplane:
-#     ...
+# Stage builders receive only the parameters they declare, so each one can take
+# just the arguments it cares about:
+#
+# def test_plate(width=WIDTH, height=HEIGHT) -> cq.Workplane:
+#     return filleted_box(width, height, 3.0, fillet=2.0)
 
 
 # ---------------------------------------------------------------------------
@@ -63,22 +62,21 @@ STAGES = {
 
 
 # ---------------------------------------------------------------------------
-# CLI
+# CLI parameters — each becomes a --flag that overrides config for one run
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    parser.add_argument("stage", choices=list(STAGES.keys()), help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-    # <Add --flags for your parameters here so they're overridable.>
-    # CLI flags override config values for one-off tweaks.
-    args = parser.parse_args()
+# Entries take one of three forms:
+#     "name": DEFAULT                        -> --name, parsed as a float
+#     "name": (DEFAULT, "help text")         -> same, with help
+#     "name": (DEFAULT, "help text", int)    -> explicit type (counts, etc.)
+#
+# Numbers default to float even when config.json stores them as an int, so a
+# dimension written as `60` still accepts `--width 60.5`.
 
-    builder = STAGES[args.stage]
-    body = builder()
-    name = f"{Path(__file__).parent.name}_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+PARAMS = {
+    # "width": (WIDTH, "Overall width (X)"),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

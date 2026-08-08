@@ -19,8 +19,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -28,18 +26,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 from cad.geometry import filleted_box, safe_fillet_radius  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config
@@ -262,41 +256,16 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()),
-                        help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-
-    # Body overrides
-    parser.add_argument("--width",  type=float, default=BODY_WIDTH,
-                        help="Body width (X)")
-    parser.add_argument("--depth",  type=float, default=BODY_DEPTH,
-                        help="Body depth (Y)")
-    parser.add_argument("--height", type=float, default=BODY_HEIGHT,
-                        help="Body height (Z)")
-    parser.add_argument("--fillet", type=float, default=BODY_FILLET,
-                        help="Vertical edge fillet radius")
-
-    # Lid override
-    parser.add_argument("--lid-height", type=float, default=LID_HEIGHT,
-                        help="Lid height (Z)")
-
-    # Pen slots are defined in config.json (list of slot dicts).
-    # No CLI overrides — edit config.json to add/move/resize slots.
-
-    args = parser.parse_args()
-
-    kw = {k.replace("-", "_"): v for k, v in vars(args).items()
-          if k not in ("stage", "output_dir")}
-
-    body = STAGES[args.stage](**kw)
-    name = f"fancy_pen_holder_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+# Pen slots are defined in config.json (list of slot dicts) — edit the config
+# to add, move, or resize them. There are no CLI flags for individual slots.
+PARAMS = {
+    "width": (BODY_WIDTH, "Body width (X)"),
+    "depth": (BODY_DEPTH, "Body depth (Y)"),
+    "height": (BODY_HEIGHT, "Body height (Z)"),
+    "fillet": (BODY_FILLET, "Vertical edge fillet radius"),
+    "lid_height": (LID_HEIGHT, "Lid height (Z)"),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)

@@ -6,26 +6,28 @@ from __future__ import annotations
 
 import os
 from pathlib import Path
-from typing import Optional, Union
+from typing import Union
 
 import cadquery as cq
-
-DEFAULT_OUTPUT_DIR = Path(__file__).resolve().parent.parent / "output"
 
 
 def to_stl(
     body: cq.Workplane,
     name: str,
-    output_dir: Optional[Union[str, Path]] = None,
+    output_dir: Union[str, Path],
     tolerance: float = 0.01,
     angular_tolerance: float = 0.1,
 ) -> Path:
     """
     Export a cadquery solid to an STL file.
 
+    output_dir is required — it previously defaulted to a repo-root `output/`
+    that does not exist, so a caller that forgot it would silently create a
+    stray directory instead of writing next to its project.
+
     Returns the path to the written file.
     """
-    out = Path(output_dir) if output_dir else DEFAULT_OUTPUT_DIR
+    out = Path(output_dir)
     out.mkdir(parents=True, exist_ok=True)
 
     if not name.endswith(".stl"):

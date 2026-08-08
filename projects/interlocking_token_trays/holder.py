@@ -14,8 +14,6 @@ Usage:
 
 from __future__ import annotations
 
-import argparse
-import json
 import sys
 from pathlib import Path
 
@@ -23,17 +21,13 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
 
 import cadquery as cq  # noqa: E402
-from cad.export import to_stl  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config — single source of truth for all parts in this project
 # ---------------------------------------------------------------------------
 
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
-
-OUTPUT_DIR = Path(__file__).parent / "output"
+CFG = load_config(__file__)
 
 # ---------------------------------------------------------------------------
 # Parameters from config — all dimensions in mm.
@@ -242,33 +236,13 @@ STAGES = {
 # CLI
 # ---------------------------------------------------------------------------
 
-def main():
-    parser = argparse.ArgumentParser(
-        description=__doc__,
-        formatter_class=argparse.RawDescriptionHelpFormatter,
-    )
-    parser.add_argument("stage", choices=list(STAGES.keys()), help="Build stage to export.")
-    parser.add_argument("-o", "--output-dir", default=str(OUTPUT_DIR))
-    parser.add_argument("--num-trays", type=int, default=HOLDER_NUM_TRAYS,
-                        help="Number of trays in the stack (default: %(default)s).")
-    parser.add_argument("--wall", type=float, default=HOLDER_WALL,
-                        help="Holder wall thickness (mm).")
-    parser.add_argument("--floor", type=float, default=HOLDER_FLOOR,
-                        help="Holder floor thickness (mm).")
-    parser.add_argument("--clearance", type=float, default=HOLDER_FIT_CLEARANCE,
-                        help="Fit clearance around trays (mm).")
-    args = parser.parse_args()
-
-    builder = STAGES[args.stage]
-    body = builder(
-        num_trays=args.num_trays,
-        wall=args.wall,
-        floor=args.floor,
-        clearance=args.clearance,
-    )
-    name = f"interlocking_token_trays_{args.stage}"
-    to_stl(body, name, output_dir=args.output_dir)
+PARAMS = {
+    "num_trays": (HOLDER_NUM_TRAYS, "Number of trays in the stack.", int),
+    "wall": (HOLDER_WALL, "Holder wall thickness (mm)."),
+    "floor": (HOLDER_FLOOR, "Holder floor thickness (mm)."),
+    "clearance": (HOLDER_FIT_CLEARANCE, "Fit clearance around trays (mm)."),
+}
 
 
 if __name__ == "__main__":
-    main()
+    run(__file__, STAGES, PARAMS)
