@@ -32,7 +32,7 @@ from cad.geometry import on_build_plate  # noqa: E402
 
 # Import builders from sibling modules
 from faceplate import build_faceplate  # noqa: E402
-from profile_test import _build_quad_solid, _fillet_corner  # noqa: E402
+from profile_test import _fillet_corner  # noqa: E402
 
 # ---------------------------------------------------------------------------
 # Load config

@@ -9,8 +9,6 @@ Then open http://localhost:8321 in your browser.
 from __future__ import annotations
 
 import json
-import os
-import sys
 from http.server import HTTPServer, SimpleHTTPRequestHandler
 from pathlib import Path
 

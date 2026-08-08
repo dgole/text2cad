@@ -3,3 +3,4 @@ __pycache__/
 *.pyc
 *.stl
 .DS_Store
+*.3mf

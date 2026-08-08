@@ -14,6 +14,8 @@
 |-------|-----------------|---------------|
 | ... | ... | ... |
 
+Each stage exports to `output/<project_name>_<stage>.stl`.
+
 ## Parameters
 
 All parameters live in [`config.json`](config.json) — the single source of

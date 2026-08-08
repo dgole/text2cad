@@ -25,9 +25,11 @@ self-consistent when parameters change.
 ```
 text2cad/
 ├── cad/                    Shared toolkit — import from any project script
-│   ├── profiles.py         2D profile generators (rounded_rect, circle, etc.)
-│   ├── ops.py              Operations (add_screw_hole, add_lip, extrude)
+│   ├── cli.py              load_config() + run() — the script entry point
+│   ├── geometry.py         Shared geometry helpers
 │   └── export.py           to_stl() — writes Workplane → STL file
+│
+├── build.py                Builds every stage of every project; regression check
 │
 ├── _template/              Skeleton for new projects — copy, don't edit
 │   ├── config.json         Parameter defaults (single source of truth)
@@ -69,6 +71,9 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent.parent))
+
+import cadquery as cq  # noqa: E402
+from cad.cli import load_config, run  # noqa: E402
 ```
 This lets it import from `cad/` regardless of working directory (project
 scripts live two levels below the repo root: `projects/<project_name>/`).
@@ -78,9 +83,7 @@ Each project has a single `config.json` — the single source of truth for all
 dimensions across every part in the project. Scripts load it at startup and
 expose module-level constants:
 ```python
-_CONFIG_PATH = Path(__file__).parent / "config.json"
-with open(_CONFIG_PATH) as _f:
-    CFG = json.load(_f)
+CFG = load_config(__file__)
 
 PORT_WIDTH = CFG["port_width"]     # mm
 PORT_HEIGHT = CFG["port_height"]   # mm
@@ -88,6 +91,11 @@ PORT_HEIGHT = CFG["port_height"]   # mm
 When a parameter changes, edit `config.json` once — all scripts in the
 project pick it up. This is what keeps multiple related parts self-consistent.
 CLI flags still override config values for one-off tweaks.
+
+Read config values with `CFG["key"]`, not `CFG.get("key", fallback)`. A
+fallback is a second place the value lives, and the two drift apart — when
+that happened here the code said 2.0 while the config said 5.0. If a key is
+missing, the script should fail loudly.
 
 **`config.json` is self-documenting** — use clear, descriptive key names so
 the file speaks for itself. Do not duplicate parameter names, descriptions,
@@ -117,17 +125,38 @@ cheap test pieces early:
 4. **Full part** — the complete geometry.
 
 ### Stage registry and CLI
+Scripts do not write their own `main()`. Declare a stage registry and a params
+dict, and hand both to `run()`:
 ```python
 STAGES = {
     "plate": test_plate,
     "collar": test_collar,
 }
+
+PARAMS = {
+    "port_width": (PORT_WIDTH, "Width of the port opening"),
+    "slot_count": (SLOT_COUNT, "Number of slots", int),
+}
+
+if __name__ == "__main__":
+    run(__file__, STAGES, PARAMS)
 ```
-The CLI uses argparse. Key dimensions should be exposed as `--flags` so the
-human (or you) can override them without editing the file:
+Each params entry becomes a `--flag` so the human (or you) can override a
+dimension without editing the file:
 ```bash
 python part.py plate --port-width 45
 ```
+Entries take one of three forms — `DEFAULT`, `(DEFAULT, "help")`, or
+`(DEFAULT, "help", type)`. Numbers are parsed as `float` unless you say
+otherwise, because config.json often stores a dimension as a bare int and
+`--port-width 45.5` must still work. Counts should pass `int` explicitly.
+
+`run()` passes each stage builder only the parameters its signature declares,
+so a builder can take just the arguments it cares about.
+
+Output is always written to `output/<project_name>_<stage>.stl`. Don't
+hand-name STL files — two scripts in a project that pick the same name will
+overwrite each other, and `build.py` treats that as an error.
 
 ### Multiple scripts per project
 A project can have more than one script when it makes sense — for example,
@@ -135,32 +164,54 @@ A project can have more than one script when it makes sense — for example,
 (the actual adapter). All scripts in a project share the same `config.json`.
 
 ### Running scripts
-Always run from the project directory (or specify the path):
+Scripts work from anywhere — run them by path or from inside the project:
 ```bash
-cd projects/dust_port_adapter && python profile_test.py
+python projects/dust_port_adapter/profile_test.py
 ```
 STL files go into the project's `output/` directory.
 
+### Building everything (`build.py`)
+`build.py` builds every stage of every project — 29 stages in about 25s.
+
+```bash
+python build.py                  # rebuild everything
+python build.py desk_organizer   # just one project
+python build.py --check          # verify nothing changed geometrically
+python build.py --snapshot       # record the current geometry as the baseline
+```
+
+**Run `--check` after touching anything in `cad/`.** Those modules are imported
+by every project, so a change can break geometry in a project you weren't
+thinking about. `--check` compares triangle count, volume, surface area, and
+absolute bounding box against `build_baseline.json`, so it catches both a
+changed shape and a part that has drifted off the build plate.
+
+When you change a part *on purpose*, `--check` will report it — confirm the
+reported deltas are the ones you intended, then re-run `--snapshot` to accept
+them. Commit the updated baseline with the change.
+
 ## Shared toolkit (`cad/`)
 
-Use and extend these modules. If you find yourself writing something
-reusable across projects, put it here.
+### `cad/cli.py`
+- `load_config(__file__)` — load the project's `config.json`.
+- `run(__file__, STAGES, PARAMS)` — the whole CLI. See above.
 
 ### `cad/export.py`
-- `to_stl(body, name, output_dir=None)` — export a Workplane to STL.
-  Defaults output to the caller's `output/` dir if you pass it.
+- `to_stl(body, name, output_dir)` — export a Workplane to STL. `run()` calls
+  this for you; call it directly only if you need a second output from one stage.
 
-### `cad/ops.py`
-- `add_screw_hole(body, diameter, position, face_selector=">Z")` — cut a
-  through-hole at an (x, y) position on a face.
-- `add_lip(body, width, height, lip_depth, lip_thickness)` — add a clip lip
-  ring around a rectangular opening.
+### `cad/geometry.py`
+- `filleted_box(width, depth, height, fillet)` — rectangular prism with
+  filleted vertical edges, centered in XY with its base on Z=0.
+- `on_build_plate(body)` — translate a body so its lowest point sits on Z=0.
+  A no-op if it already does, so it's safe to apply at the end of any stage.
+- `safe_fillet_radius(radius, *spans)` — clamp a fillet to what the geometry
+  can accept. Returns a value that may be <= 0, meaning "skip the fillet".
 
-### `cad/profiles.py`
-- `rounded_rect(width, height, fillet)` — 2D rounded rectangle.
-- `circle(diameter)` — 2D circle.
-- `rounded_rect_shell(outer_width, outer_height, wall, fillet)` — hollow
-  rounded rectangle (for clip rings, rims).
+**Only add to `cad/` once something is genuinely duplicated.** This directory
+previously held two modules of plausible-looking helpers that no project ever
+imported, while the same three helpers were copy-pasted across ten scripts.
+Write it inline first; promote it when the second project needs it.
 
 ## Design workflow with the human
 
@@ -202,5 +253,6 @@ Run `python viewer/server.py` and open http://localhost:8321 to visually inspect
 
 ## Git
 
-Commit regularly. STL files are gitignored. Reference images are tracked.
-Project scripts and AGENTS.md files are the important artifacts.
+Commit regularly. STL and 3MF files are gitignored. Reference images are
+tracked. Project scripts, `config.json`, AGENTS.md files, and
+`build_baseline.json` are the important artifacts.

@@ -40,18 +40,18 @@ KEY_DEPTH = CFG["key_depth"]      # ridge protrusion beyond wall
 FILLET_OUTER = CFG["fillet_outer"]
 
 # ---------------------------------------------------------------------------
-# Holder-specific defaults (will be added to config.json)
+# Holder-specific parameters
 # ---------------------------------------------------------------------------
 
-HOLDER_NUM_TRAYS = CFG.get("holder_num_trays", 8)
-HOLDER_WALL = CFG.get("holder_wall", 2.5)
-HOLDER_FLOOR = CFG.get("holder_floor", 2.0)
-HOLDER_FIT_CLEARANCE = CFG.get("holder_fit_clearance", 0.5)
-HOLDER_FILLET = CFG.get("holder_fillet", 3.0)
-HOLDER_RELIEF_WIDTH = CFG.get("holder_relief_width", 40.0)
-HOLDER_RELIEF_BASE = CFG.get("holder_relief_base", 20.0)
-HOLDER_RELIEF_DEPTH = CFG.get("holder_relief_depth", 15.0)
-HOLDER_RELIEF_FILLET = CFG.get("holder_relief_fillet", 5.0)
+HOLDER_NUM_TRAYS = CFG["holder_num_trays"]
+HOLDER_WALL = CFG["holder_wall"]
+HOLDER_FLOOR = CFG["holder_floor"]
+HOLDER_FIT_CLEARANCE = CFG["holder_fit_clearance"]
+HOLDER_FILLET = CFG["holder_fillet"]
+HOLDER_RELIEF_WIDTH = CFG["holder_relief_width"]
+HOLDER_RELIEF_BASE = CFG["holder_relief_base"]
+HOLDER_RELIEF_DEPTH = CFG["holder_relief_depth"]
+HOLDER_RELIEF_FILLET = CFG["holder_relief_fillet"]
 
 
 # ---------------------------------------------------------------------------

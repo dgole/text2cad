@@ -10,11 +10,13 @@ clips onto this rim and connects to a dust collection hose.
 
 ### `profile_test.py` — Rim profile test piece
 
-Generates a thin outline (frame) matching the outer perimeter of the flange/rim.
-Print it, hold it against the saw, check fit. This is the iterative measurement
-tool — get the shape right here first.
+Stage: `profile`. Generates a thin outline (frame) matching the outer perimeter
+of the flange/rim. Print it, hold it against the saw, check fit. This is the
+iterative measurement tool — get the shape right here first.
 
 ### `faceplate.py` — Faceplate with walls
+
+Stage: `faceplate`.
 
 Builds the actual adapter body: walls that drop over the flange rim, capped with
 a solid plate. The wall profile reuses the geometry from `profile_test.py`.
@@ -35,17 +37,18 @@ Side view (cross section):
 `faceplate.py` imports geometry helpers from `profile_test.py` — they share a
 single source of truth for the rim shape via `config.json`.
 
-### `adapter.py` — Complete adapter with curved transition tube
+### `adapter.py` — Complete adapter with angled transition tube
 
-Builds the full adapter: faceplate + a single curved transition tube that
-morphs from the irregular port hole to a circular hose connection while
-simultaneously curving from vertical toward the exit direction. No discrete
-elbow — the quad→circle morph and directional change happen together along
-a smooth arc. Two stages:
+Builds the full adapter: faceplate + a straight angled transition tube that
+morphs from the irregular port hole to a circular hose connection as it
+travels. The tube is lofted through a series of cross-sections along a
+straight path — the quad→circle morph happens along that path, and the tube
+exit face is cut at its own angle so the hose sits where it needs to. Two
+stages:
 
-- **`transition_test`** — Faceplate + curved transition (no socket).
-  Verify the shape morph and curve look right.
-- **`full`** — Complete adapter: faceplate + curved transition + female hose socket.
+- **`transition_test`** — Faceplate + angled transition (no socket).
+  Verify the shape morph and angle look right.
+- **`full`** — Complete adapter: faceplate + angled transition + female hose socket.
 
 ```
 Side view (cross section):
@@ -56,16 +59,18 @@ Side view (cross section):
     ├───┴─────────────────┴───┤
     │█████████████████████████│  ← cap (with port hole + screw hole)
     ├─────────────────────────┤
-    │  ╲                      │  ← curve starts immediately
-    │    ╲  CURVED TRANSITION │    quad→circle morph happens
-    │     ╲   (arc R=40mm)    │    along the arc path
-    │      ╲                  │
-    │       ○─────────────────│  ← now circular, ~75° from vertical
-    │  SOCKET (20mm)          │  ← female, hose slides in
+    │  ╲                      │
+    │   ╲  ANGLED TRANSITION  │  ← straight path, quad→circle morph
+    │    ╲   (lofted stations)│    happens along its length
+    │     ╲                   │
+    │      ○──────────────────│  ← now circular, exit face angled
+    │  SOCKET                 │  ← female, hose slides in
     └─────────────────────────┘
-
-    Arc direction: 40° from A-D edge toward A-B edge
 ```
+
+The path angle, exit angle, exit direction, and tube length are all in
+`config.json` under `transition` — the geometry is sensitive to these, so
+change one at a time and reprint.
 
 Imports `build_faceplate()` from `faceplate.py` and geometry helpers from
 `profile_test.py`. All tube parameters live in `config.json` under `transition`.
