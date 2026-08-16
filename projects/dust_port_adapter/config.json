@@ -30,7 +30,8 @@
         "cap_thickness": 2.0,
         "screw_x": 16.0,
         "screw_y": 52.0,
-        "screw_diameter": 11.0,
+        "_screw_diameter": "Shank clearance hole so the screw head clamps the cap: M5 close clearance (5.5) + 0.3 for FDM hole shrinkage. The saw's 11mm countersink cone is NOT the screw size. Use 4.8 if the screw turns out to be M4.",
+        "screw_diameter": 5.8,
         "port_hole": {
             "_comment": "Cutout through the cap for dust to pass. Vertices define its outline on the cap face.",
             "_A": "Construction vertex, deliberately outside the rim: pushed 12mm out along the old acute corner's bisector from the measured [5, 15] so the corner fillet lands as a rounded lobe that fills the lower corner (teardrop, like the saw's real opening). Only the tangent arc is part of the outline; verified >= 3mm inside the rim.",
