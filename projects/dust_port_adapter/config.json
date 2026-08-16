@@ -32,6 +32,8 @@
         "screw_y": 52.0,
         "_screw_diameter": "Shank clearance hole so the screw head clamps the cap: M5 oversize clearance (6.5, prints ~6.2) buys ~±0.7mm alignment slop for the ruler-measured hole position. The saw's 11mm countersink cone is NOT the screw size. An M5 pan head (~9.5mm) still seats fine; if the screw is M4, keep 6.5 but add a washer (good idea on 2mm plastic regardless).",
         "screw_diameter": 6.5,
+        "_screw_access_diameter": "Diameter of the vertical cylindrical pocket scooped out of the transition tube's wall around the screw, so the head can seat and a driver can reach it (the flared wall base otherwise leans to ~2.8mm from the screw axis). Cuts the outer wall only; the air channel keeps ~1.6mm of wall at the pinch at diameter 12. 0 = off.",
+        "screw_access_diameter": 12.0,
         "port_hole": {
             "_comment": "Cutout through the cap for dust to pass. Vertices define its outline on the cap face.",
             "_A": "Construction vertex, deliberately outside the rim: pushed 12mm out along the old acute corner's bisector from the measured [5, 15] so the corner fillet lands as a rounded lobe that fills the lower corner (teardrop, like the saw's real opening). Only the tangent arc is part of the outline; verified >= 3mm inside the rim.",

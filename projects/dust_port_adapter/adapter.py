@@ -47,6 +47,9 @@ CFG = load_config(__file__)
 # Faceplate dimensions (needed for positioning the tube)
 WALL_HEIGHT = CFG["faceplate"]["wall_height"]
 CAP_THICKNESS = CFG["faceplate"]["cap_thickness"]
+SCREW_X = CFG["faceplate"]["screw_x"]
+SCREW_Y = CFG["faceplate"]["screw_y"]
+SCREW_ACCESS_DIAMETER = CFG["faceplate"]["screw_access_diameter"]
 
 # Port hole shape (the quad cutout in the cap — tube starts here)
 _ph = CFG["faceplate"]["port_hole"]
@@ -602,6 +605,7 @@ def build_adapter(
     port_hole_fillet_b: float = PORT_HOLE_FILLETS[1],
     port_hole_fillet_c: float = PORT_HOLE_FILLETS[2],
     port_hole_fillet_d: float = PORT_HOLE_FILLETS[3],
+    screw_access_diameter: float = SCREW_ACCESS_DIAMETER,
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
 ) -> cq.Workplane:
@@ -656,6 +660,21 @@ def build_adapter(
         z_base=z_cap_top - 1.0,  # overlap into cap for reliable boolean union
     )
     result = result.union(transition)
+
+    # 2b. Screw access relief: the tube's flared wall base leans to within
+    # ~2.8mm of the screw axis right where the screw head sits, so scoop a
+    # vertical cylindrical pocket around the screw down to the cap.  Cuts
+    # only the outer wall (the air channel stays ~7.6mm from the axis at the
+    # pinch); starts 0.2mm below the cap top to spot-face a flat seat for
+    # the head.  0 disables.
+    if screw_access_diameter > 0:
+        relief = (
+            cq.Workplane("XY")
+            .transformed(offset=(SCREW_X, SCREW_Y, z_cap_top - 0.2))
+            .circle(screw_access_diameter / 2.0)
+            .extrude(40)
+        )
+        result = result.cut(relief)
 
     if stage == "transition_test":
         return on_build_plate(result)
@@ -723,6 +742,8 @@ PARAMS = {
     "port_hole_fillet_b": (PORT_HOLE_FILLETS[1], "Fillet radius at port hole corner B."),
     "port_hole_fillet_c": (PORT_HOLE_FILLETS[2], "Fillet radius at port hole corner C."),
     "port_hole_fillet_d": (PORT_HOLE_FILLETS[3], "Fillet radius at port hole corner D."),
+    "screw_access_diameter": (SCREW_ACCESS_DIAMETER,
+                              "Diameter of the cylindrical screw-access pocket cut into the tube wall. 0 = off."),
     "num_stations": (NUM_LOFT_STATIONS, "Number of intermediate cross-sections.", int),
     "num_points": (NUM_PROFILE_POINTS, "Points sampled around each cross-section.", int),
 }
