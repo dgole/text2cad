@@ -160,36 +160,36 @@
     "volume": 2366.182911154977
   },
   "projects/dust_port_adapter/adapter.py::full#dust_port_adapter_full.stl": {
-    "area": 30977.72558685414,
+    "area": 28004.64241805078,
     "bbox_max": [
       78.30628967285156,
       62.0,
-      68.93701934814453
+      59.83540725708008
     ],
     "bbox_min": [
-      -52.23292541503906,
-      -41.84423065185547,
+      -42.58908462524414,
+      -33.7520866394043,
       0.0
     ],
-    "sha256": "8c68756e05f0413852a228cb519c2241c1ec6067a87c8b593860a3c6cff4f58b",
-    "triangles": 6382,
-    "volume": 47728.7303795667
+    "sha256": "ae84d0ed38e9751736a8526a390d04aa339c26235e390ba7f469d430271a1f90",
+    "triangles": 8568,
+    "volume": 43992.925673806414
   },
   "projects/dust_port_adapter/adapter.py::transition_test#dust_port_adapter_transition_test.stl": {
-    "area": 26099.390610568782,
+    "area": 23159.290045972248,
     "bbox_max": [
       78.30628967285156,
       62.0,
-      65.4024658203125
+      56.30263900756836
     ],
     "bbox_min": [
-      -37.0906867980957,
-      -29.151988983154297,
+      -27.446847915649414,
+      -21.059846878051758,
       0.0
     ],
-    "sha256": "17ffbe7fa4e3eb441ffb81b9d495ecf6087e10335150bf9489363b921dcad910",
-    "triangles": 4410,
-    "volume": 40403.669036779334
+    "sha256": "f261f2ffe6767a31bc4fab7935c312e69e2f6d9fb8c64a36bf3502c88f04bc31",
+    "triangles": 4888,
+    "volume": 36703.563925753115
   },
   "projects/dust_port_adapter/faceplate.py::faceplate#dust_port_adapter_faceplate.stl": {
     "area": 7359.044536207163,

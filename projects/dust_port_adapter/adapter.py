@@ -64,7 +64,8 @@ TUBE_LENGTH = _tr["tube_length"]
 EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
 PATH_ANGLE_DEG = _tr["path_angle_deg"]
 EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
-TILT_EASE_EXP = _tr["tilt_ease_exp"]
+TILT_BLEND_START = _tr["tilt_blend_start"]
+PATH_BEND_START = _tr["path_bend_start"]
 MORPH_EASE_EXP = _tr["morph_ease_exp"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
@@ -322,7 +323,8 @@ def build_angled_transition(
     exit_angle_deg: float,
     path_angle_deg: float,
     exit_direction_deg: float,
-    tilt_ease_exp: float,
+    tilt_blend_start: float,
+    path_bend_start: float,
     morph_ease_exp: float,
     num_stations: int,
     num_points: int,
@@ -351,13 +353,6 @@ def build_angled_transition(
     # Horizontal direction the tube angles toward
     d_horiz = (-math.cos(alpha), -math.sin(alpha), 0.0)
 
-    # Path direction (straight line from base to exit)
-    path_dir = (
-        math.sin(path_angle) * d_horiz[0],
-        math.sin(path_angle) * d_horiz[1],
-        math.cos(path_angle),
-    )
-
     # Binormal: perpendicular to the tilt plane (for Rodrigues rotation)
     binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
 
@@ -376,43 +371,117 @@ def build_angled_transition(
     )
     inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start)
 
-    # --- Build wires at each station ---
-    outer_wires = []
-    inner_wires = []
-    for i in range(num_stations + 1):
-        t = i / num_stations  # 0 at base, 1 at exit
-
-        # Center position: linear interpolation along path
-        pos = (
-            cx + t * tube_length * path_dir[0],
-            cy + t * tube_length * path_dir[1],
-            z_base + t * tube_length * path_dir[2],
-        )
-
-        # Tilt: 0 (flat) at base → exit_angle at exit.  Eased by t**p so the
-        # sections stay near-flat while the profile is still large; a linear
-        # tilt (p=1) swings the quad's long corner-A side down toward the
-        # faceplate and the underside of the tube visibly bulges.
-        tilt = (t ** tilt_ease_exp) * exit_angle
-
+    def profiles_at(t: float) -> Tuple[List[Tuple[float, float]], List[Tuple[float, float]]]:
+        """(inner, outer) 2D cross-section outlines at station t, pre-tilt."""
         # Shape morph: quad → circle, eased by 1-(1-t)**q so the big quad
         # shrinks toward the circle early, before the tilt picks up.
         # q=1 is a linear morph.
         s = 1.0 - (1.0 - t) ** morph_ease_exp
-
-        # Interpolate 2D cross-section (quad→circle)
-        inner_pts_2d = [
+        inner_pts = [
             ((1 - s) * iq[0] + s * ic[0], (1 - s) * iq[1] + s * ic[1])
             for iq, ic in zip(inner_quad, inner_circle)
         ]
-
         # Wall thickness tapers from tube_wall_base at the faceplate to
         # tube_wall at the exit.  Near the base the tube's trailing surface
         # runs very oblique to the (near-flat) cross-sections, so an in-plane
         # wall of W yields a true perpendicular wall much thinner than W —
         # a thicker base wall compensates.
         wall_t = tube_wall_base + (tube_wall - tube_wall_base) * t
-        outer_pts_2d = _offset_outline(inner_pts_2d, wall_t, centroid)
+        return inner_pts, _offset_outline(inner_pts, wall_t, centroid)
+
+    # --- Tilt schedule: keep the tube's underside straight ---
+    # The underside (toward d_horiz, facing the faceplate) is the visually
+    # dominant edge of the tube, and any fixed easing curve makes it bow
+    # somewhere.  Instead, solve per station for the tilt that places the
+    # underside surface point exactly on the straight chord from base to
+    # exit.  That solution ends well short of exit_angle (which the exit
+    # face must reach for the hose), so past `tilt_blend_start` the tilt
+    # sweeps up to exit_angle with a slope-matched cubic that ends with zero
+    # rotation rate — the unavoidable final sweep becomes one gentle bow
+    # instead of a bulge, and the tube meets the socket without a kink.
+    # --- Centerline: straight at path_angle, optionally bending to the exit
+    # angle over the final stretch (past path_bend_start; 1.0 = no bend).
+    # Without the bend the centerline still travels at path_angle when it
+    # meets the socket (which runs at exit_angle), so the tube's underside
+    # creases at the junction; a gentle arc arrives tangent to the socket.
+    delta = exit_angle - path_angle
+    bend_t = min(max(path_bend_start, 0.05), 1.0)
+
+    def path_at(t: float) -> Tuple[float, float]:
+        """Centerline point as (distance along d_horiz, height) from base."""
+        if t <= bend_t or abs(delta) < 1e-9:
+            return (t * tube_length * math.sin(path_angle),
+                    t * tube_length * math.cos(path_angle))
+        f = 1.0 - bend_t
+        radius = f * tube_length / delta
+        phi = path_angle + (t - bend_t) / f * delta
+        return (
+            bend_t * tube_length * math.sin(path_angle)
+            + radius * (math.cos(path_angle) - math.cos(phi)),
+            bend_t * tube_length * math.cos(path_angle)
+            + radius * (math.sin(phi) - math.sin(path_angle)),
+        )
+
+    def rho_under(t: float) -> float:
+        _, outer_pts = profiles_at(t)
+        return max(
+            (p[0] - cx) * d_horiz[0] + (p[1] - cy) * d_horiz[1]
+            for p in outer_pts
+        )
+
+    def under_point(t: float, tilt: float) -> Tuple[float, float]:
+        """Underside surface point in the (d_horiz, z) plane."""
+        r = rho_under(t)
+        pa, pz = path_at(t)
+        return (pa + r * math.cos(tilt), pz - r * math.sin(tilt))
+
+    chord_a = under_point(0.0, 0.0)
+    chord_b = under_point(1.0, exit_angle)
+    chord_dx = chord_b[0] - chord_a[0]
+    chord_dy = chord_b[1] - chord_a[1]
+
+    def solve_tilt(t: float) -> float:
+        """Bisect for the tilt that puts the underside point on the chord."""
+        lo, hi = 0.0, exit_angle
+        for _ in range(40):
+            mid = (lo + hi) / 2.0
+            px, pz = under_point(t, mid)
+            below = (px - chord_a[0]) * chord_dy - (pz - chord_a[1]) * chord_dx
+            if below > 0:
+                hi = mid
+            else:
+                lo = mid
+        return (lo + hi) / 2.0
+
+    t_star = min(max(tilt_blend_start, 0.05), 0.95)
+    k0 = solve_tilt(t_star)
+    m0 = (k0 - solve_tilt(t_star - 0.01)) / 0.01  # entry slope for the blend
+
+    def tilt_at(t: float) -> float:
+        if t <= t_star:
+            return solve_tilt(t)
+        s = (t - t_star) / (1.0 - t_star)
+        h00 = 2 * s**3 - 3 * s**2 + 1
+        h10 = s**3 - 2 * s**2 + s
+        h01 = -2 * s**3 + 3 * s**2
+        return h00 * k0 + h10 * (1.0 - t_star) * m0 + h01 * exit_angle
+
+    # --- Build wires at each station ---
+    outer_wires = []
+    inner_wires = []
+    for i in range(num_stations + 1):
+        t = i / num_stations  # 0 at base, 1 at exit
+
+        # Center position along the (possibly bent) centerline
+        pa, pz = path_at(t)
+        pos = (
+            cx + pa * d_horiz[0],
+            cy + pa * d_horiz[1],
+            z_base + pz,
+        )
+
+        tilt = tilt_at(t)
+        inner_pts_2d, outer_pts_2d = profiles_at(t)
 
         # Transform 2D → 3D: subtract centroid, rotate by -tilt, translate
         def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
@@ -436,10 +505,11 @@ def build_angled_transition(
     ).solids()
 
     # --- Exit geometry ---
+    exit_a, exit_z = path_at(1.0)
     exit_point = (
-        cx + tube_length * path_dir[0],
-        cy + tube_length * path_dir[1],
-        z_base + tube_length * path_dir[2],
+        cx + exit_a * d_horiz[0],
+        cy + exit_a * d_horiz[1],
+        z_base + exit_z,
     )
 
     final_face_normal = (
@@ -521,7 +591,8 @@ def build_adapter(
     exit_angle_deg: float = EXIT_ANGLE_DEG,
     path_angle_deg: float = PATH_ANGLE_DEG,
     exit_direction_deg: float = EXIT_DIRECTION_DEG,
-    tilt_ease_exp: float = TILT_EASE_EXP,
+    tilt_blend_start: float = TILT_BLEND_START,
+    path_bend_start: float = PATH_BEND_START,
     morph_ease_exp: float = MORPH_EASE_EXP,
     port_hole_ax: float = PORT_HOLE_VERTS[0][0], port_hole_ay: float = PORT_HOLE_VERTS[0][1],
     port_hole_bx: float = PORT_HOLE_VERTS[1][0], port_hole_by: float = PORT_HOLE_VERTS[1][1],
@@ -577,7 +648,8 @@ def build_adapter(
         exit_angle_deg=exit_angle_deg,
         path_angle_deg=path_angle_deg,
         exit_direction_deg=exit_direction_deg,
-        tilt_ease_exp=tilt_ease_exp,
+        tilt_blend_start=tilt_blend_start,
+        path_bend_start=path_bend_start,
         morph_ease_exp=morph_ease_exp,
         num_stations=num_stations,
         num_points=num_points,
@@ -636,8 +708,11 @@ PARAMS = {
     "path_angle_deg": (PATH_ANGLE_DEG, "Angle of travel from vertical (degrees)."),
     "exit_direction_deg": (EXIT_DIRECTION_DEG,
                            "Horizontal direction (degrees). 0=toward A-D, positive=toward A-B."),
-    "tilt_ease_exp": (TILT_EASE_EXP,
-                      "Tilt easing exponent (t**p). 1=linear; >1 delays tilt until the profile has shrunk."),
+    "tilt_blend_start": (TILT_BLEND_START,
+                         "Fraction of the tube with a solved straight underside; the rest sweeps to exit_angle."),
+    "path_bend_start": (PATH_BEND_START,
+                        "Fraction of the tube with a straight centerline; the rest arcs to exit_angle so the "
+                        "tube meets the socket tangent. 1.0 = no bend."),
     "morph_ease_exp": (MORPH_EASE_EXP,
                        "Quad->circle morph easing exponent (1-(1-t)**q). 1=linear; >1 shrinks the quad early."),
     "port_hole_ax": PORT_HOLE_VERTS[0][0], "port_hole_ay": PORT_HOLE_VERTS[0][1],
