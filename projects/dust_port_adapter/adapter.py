@@ -141,6 +141,11 @@ def _sample_quad_outline(
                 idx = k
                 break
         else:
+            # target_len fell in the loop-closing gap (past the last recorded
+            # point).  Extrapolating along the last recorded segment (frac > 1)
+            # is only correct because the outline's final points are the
+            # straight-edge samples leading back to outline[0] — collinear
+            # with the closing gap.
             idx = len(cum_len) - 2
 
         seg_start = cum_len[idx]
@@ -241,23 +246,40 @@ def _offset_quad_outline(
 ) -> List[Tuple[float, float]]:
     """
     Offset a quad outline outward (positive offset) or inward (negative).
-    Simple approach: scale each sampled point away from the centroid.
+
+    Each sampled point moves along the local outline normal, so the offset
+    is the true perpendicular wall thickness everywhere.  (Pushing points
+    radially away from the centroid instead thins the wall wherever the
+    outline runs obliquely to the radial direction — for the port hole quad
+    that meant ~0.7mm of an intended 3mm wall near corner A.)
+
+    The centroid is only used to orient the normal outward.
     """
     sampled = _sample_quad_outline(verts, fillet_r, num_points)
     cx, cy = centroid
+    n = len(sampled)
     result = []
-    for px, py in sampled:
-        dx = px - cx
-        dy = py - cy
-        dist = math.sqrt(dx * dx + dy * dy)
-        if dist < 1e-9:
-            result.append((px, py))
-            continue
-        # Move point outward by `offset` along the radial direction
-        result.append((
-            px + (dx / dist) * offset,
-            py + (dy / dist) * offset,
-        ))
+    for i, (px, py) in enumerate(sampled):
+        # Tangent from neighboring samples (central difference)
+        p_prev = sampled[(i - 1) % n]
+        p_next = sampled[(i + 1) % n]
+        tx = p_next[0] - p_prev[0]
+        ty = p_next[1] - p_prev[1]
+        t_len = math.sqrt(tx * tx + ty * ty)
+        if t_len < 1e-9:
+            # Degenerate tangent; fall back to the radial direction
+            nx, ny = px - cx, py - cy
+            n_len = math.sqrt(nx * nx + ny * ny)
+            if n_len < 1e-9:
+                result.append((px, py))
+                continue
+            nx, ny = nx / n_len, ny / n_len
+        else:
+            nx, ny = ty / t_len, -tx / t_len
+            # Orient outward (away from the centroid)
+            if nx * (px - cx) + ny * (py - cy) < 0:
+                nx, ny = -nx, -ny
+        result.append((px + nx * offset, py + ny * offset))
     return result
 
 
@@ -541,10 +563,6 @@ def build_adapter(
 
     return on_build_plate(result)
 
-
-# ---------------------------------------------------------------------------
-# Stage registry
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Stage registry

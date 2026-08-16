@@ -8,7 +8,7 @@ around the saw's dust port.  Print it, hold it up to the saw, check fit.
 The shape is an irregular quadrilateral with:
   - 4 mostly-straight sides
   - 3 corners that are close to 90° (with small fillets)
-  - 1 corner (D, top-left) with significant rounding
+  - 1 corner (A, bottom-left) with significant rounding
 
 Corner layout (looking at the port from outside the saw):
 
@@ -89,7 +89,7 @@ def _offset_vertices_inward(
         e1 = (p_curr[0] - p_prev[0], p_curr[1] - p_prev[1])
         e2 = (p_next[0] - p_curr[0], p_next[1] - p_curr[1])
 
-        # Inward-pointing normals (for clockwise winding, inward = left of edge direction)
+        # Inward-pointing normals (for CCW winding, inward = left of edge direction)
         # Left normal of a vector (dx, dy) is (-dy, dx)
         n1_len = math.sqrt(e1[0]**2 + e1[1]**2)
         n2_len = math.sqrt(e2[0]**2 + e2[1]**2)
@@ -305,10 +305,6 @@ def build_profile_plate(
 
     return outer_solid.cut(inner_solid)
 
-
-# ---------------------------------------------------------------------------
-# CLI
-# ---------------------------------------------------------------------------
 
 # ---------------------------------------------------------------------------
 # Stage registry
