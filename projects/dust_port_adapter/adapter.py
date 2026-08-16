@@ -51,7 +51,7 @@ CAP_THICKNESS = CFG["faceplate"]["cap_thickness"]
 # Port hole shape (the quad cutout in the cap — tube starts here)
 _ph = CFG["faceplate"]["port_hole"]
 PORT_HOLE_VERTS = [tuple(_ph[k]) for k in ("A", "B", "C", "D")]
-PORT_HOLE_FILLET = _ph["fillet_radius"]
+PORT_HOLE_FILLETS = [_ph["fillets"][k] for k in ("A", "B", "C", "D")]
 
 # Transition tube parameters
 _tr = CFG["transition"]
@@ -59,10 +59,13 @@ HOSE_OD = _tr["hose_od"]
 HOSE_TOLERANCE = _tr["hose_tolerance"]
 SOCKET_DEPTH = _tr["socket_depth"]
 TUBE_WALL = _tr["tube_wall"]
+TUBE_WALL_BASE = _tr["tube_wall_base"]
 TUBE_LENGTH = _tr["tube_length"]
 EXIT_ANGLE_DEG = _tr["exit_angle_deg"]
 PATH_ANGLE_DEG = _tr["path_angle_deg"]
 EXIT_DIRECTION_DEG = _tr["exit_direction_deg"]
+TILT_EASE_EXP = _tr["tilt_ease_exp"]
+MORPH_EASE_EXP = _tr["morph_ease_exp"]
 NUM_LOFT_STATIONS = _tr["num_loft_stations"]
 NUM_PROFILE_POINTS = _tr["num_profile_points"]
 
@@ -73,12 +76,12 @@ NUM_PROFILE_POINTS = _tr["num_profile_points"]
 
 def _sample_quad_outline(
     verts: List[Tuple[float, float]],
-    fillet_r: float,
+    fillets: List[float],
     num_points: int,
 ) -> List[Tuple[float, float]]:
     """
     Sample `num_points` evenly-spaced (by arc length) around a filleted
-    quadrilateral defined by `verts` with uniform fillet radius.
+    quadrilateral defined by `verts` with per-corner fillet radii.
 
     Returns a list of (x, y) points walking CCW around the shape.
     """
@@ -91,6 +94,7 @@ def _sample_quad_outline(
         p_curr = verts[i]
         p_next = verts[(i + 1) % n]
 
+        fillet_r = fillets[i]
         if fillet_r > 0.01:
             t_start, arc_center, t_end = _fillet_corner(
                 p_prev, p_curr, p_next, fillet_r,
@@ -237,15 +241,14 @@ def _make_wire_from_points(
     return cq.Wire.assembleEdges(edges)
 
 
-def _offset_quad_outline(
-    verts: List[Tuple[float, float]],
-    fillet_r: float,
+def _offset_outline(
+    sampled: List[Tuple[float, float]],
     offset: float,
-    num_points: int,
     centroid: Tuple[float, float],
 ) -> List[Tuple[float, float]]:
     """
-    Offset a quad outline outward (positive offset) or inward (negative).
+    Offset a sampled closed outline outward (positive offset) or inward
+    (negative).
 
     Each sampled point moves along the local outline normal, so the offset
     is the true perpendicular wall thickness everywhere.  (Pushing points
@@ -255,7 +258,6 @@ def _offset_quad_outline(
 
     The centroid is only used to orient the normal outward.
     """
-    sampled = _sample_quad_outline(verts, fillet_r, num_points)
     cx, cy = centroid
     n = len(sampled)
     result = []
@@ -311,14 +313,17 @@ def _rodrigues_rotate(
 
 def build_angled_transition(
     port_hole_verts: List[Tuple[float, float]],
-    port_hole_fillet: float,
+    port_hole_fillets: List[float],
     hose_od: float,
     hose_tolerance: float,
     tube_wall: float,
+    tube_wall_base: float,
     tube_length: float,
     exit_angle_deg: float,
     path_angle_deg: float,
     exit_direction_deg: float,
+    tilt_ease_exp: float,
+    morph_ease_exp: float,
     num_stations: int,
     num_points: int,
     z_base: float,
@@ -338,7 +343,6 @@ def build_angled_transition(
     centroid = _quad_centroid(port_hole_verts)
     cx, cy = centroid
     inner_radius = (hose_od + hose_tolerance) / 2.0
-    outer_radius = inner_radius + tube_wall
 
     exit_angle = math.radians(exit_angle_deg)
     path_angle = math.radians(path_angle_deg)
@@ -357,12 +361,11 @@ def build_angled_transition(
     # Binormal: perpendicular to the tilt plane (for Rodrigues rotation)
     binormal = (-math.sin(alpha), math.cos(alpha), 0.0)
 
-    # Sample the port hole quad (inner and outer)
+    # Sample the port hole quad (inner outline only — the outer surface is
+    # derived per-station by offsetting the interpolated inner profile, so
+    # the wall thickness is exact at every station and can taper).
     inner_quad = _sample_quad_outline(
-        port_hole_verts, port_hole_fillet, num_points,
-    )
-    outer_quad = _offset_quad_outline(
-        port_hole_verts, port_hole_fillet, tube_wall, num_points, centroid,
+        port_hole_verts, port_hole_fillets, num_points,
     )
 
     # Align circle sampling with first quad point
@@ -372,7 +375,6 @@ def build_angled_transition(
         first_quad_pt[0] - cx,
     )
     inner_circle = _sample_circle(cx, cy, inner_radius, num_points, circle_start)
-    outer_circle = _sample_circle(cx, cy, outer_radius, num_points, circle_start)
 
     # --- Build wires at each station ---
     outer_wires = []
@@ -387,18 +389,30 @@ def build_angled_transition(
             z_base + t * tube_length * path_dir[2],
         )
 
-        # Tilt: 0 (flat) at base → exit_angle at exit
-        tilt = t * exit_angle
+        # Tilt: 0 (flat) at base → exit_angle at exit.  Eased by t**p so the
+        # sections stay near-flat while the profile is still large; a linear
+        # tilt (p=1) swings the quad's long corner-A side down toward the
+        # faceplate and the underside of the tube visibly bulges.
+        tilt = (t ** tilt_ease_exp) * exit_angle
+
+        # Shape morph: quad → circle, eased by 1-(1-t)**q so the big quad
+        # shrinks toward the circle early, before the tilt picks up.
+        # q=1 is a linear morph.
+        s = 1.0 - (1.0 - t) ** morph_ease_exp
 
         # Interpolate 2D cross-section (quad→circle)
-        outer_pts_2d = [
-            ((1 - t) * oq[0] + t * oc[0], (1 - t) * oq[1] + t * oc[1])
-            for oq, oc in zip(outer_quad, outer_circle)
-        ]
         inner_pts_2d = [
-            ((1 - t) * iq[0] + t * ic[0], (1 - t) * iq[1] + t * ic[1])
+            ((1 - s) * iq[0] + s * ic[0], (1 - s) * iq[1] + s * ic[1])
             for iq, ic in zip(inner_quad, inner_circle)
         ]
+
+        # Wall thickness tapers from tube_wall_base at the faceplate to
+        # tube_wall at the exit.  Near the base the tube's trailing surface
+        # runs very oblique to the (near-flat) cross-sections, so an in-plane
+        # wall of W yields a true perpendicular wall much thinner than W —
+        # a thicker base wall compensates.
+        wall_t = tube_wall_base + (tube_wall - tube_wall_base) * t
+        outer_pts_2d = _offset_outline(inner_pts_2d, wall_t, centroid)
 
         # Transform 2D → 3D: subtract centroid, rotate by -tilt, translate
         def transform(pts_2d: List[Tuple[float, float]]) -> List[Tuple[float, float, float]]:
@@ -502,10 +516,21 @@ def build_adapter(
     hose_tolerance: float = HOSE_TOLERANCE,
     socket_depth: float = SOCKET_DEPTH,
     tube_wall: float = TUBE_WALL,
+    tube_wall_base: float = TUBE_WALL_BASE,
     tube_length: float = TUBE_LENGTH,
     exit_angle_deg: float = EXIT_ANGLE_DEG,
     path_angle_deg: float = PATH_ANGLE_DEG,
     exit_direction_deg: float = EXIT_DIRECTION_DEG,
+    tilt_ease_exp: float = TILT_EASE_EXP,
+    morph_ease_exp: float = MORPH_EASE_EXP,
+    port_hole_ax: float = PORT_HOLE_VERTS[0][0], port_hole_ay: float = PORT_HOLE_VERTS[0][1],
+    port_hole_bx: float = PORT_HOLE_VERTS[1][0], port_hole_by: float = PORT_HOLE_VERTS[1][1],
+    port_hole_cx: float = PORT_HOLE_VERTS[2][0], port_hole_cy: float = PORT_HOLE_VERTS[2][1],
+    port_hole_dx: float = PORT_HOLE_VERTS[3][0], port_hole_dy: float = PORT_HOLE_VERTS[3][1],
+    port_hole_fillet_a: float = PORT_HOLE_FILLETS[0],
+    port_hole_fillet_b: float = PORT_HOLE_FILLETS[1],
+    port_hole_fillet_c: float = PORT_HOLE_FILLETS[2],
+    port_hole_fillet_d: float = PORT_HOLE_FILLETS[3],
     num_stations: int = NUM_LOFT_STATIONS,
     num_points: int = NUM_PROFILE_POINTS,
 ) -> cq.Workplane:
@@ -514,22 +539,46 @@ def build_adapter(
     # Z coordinate of the top of the faceplate cap (in build orientation)
     z_cap_top = WALL_HEIGHT + CAP_THICKNESS
 
-    # 1. Faceplate (no flip — we flip the whole assembly at the end)
+    port_hole_verts = [
+        (port_hole_ax, port_hole_ay), (port_hole_bx, port_hole_by),
+        (port_hole_cx, port_hole_cy), (port_hole_dx, port_hole_dy),
+    ]
+    port_hole_fillets = [
+        port_hole_fillet_a, port_hole_fillet_b,
+        port_hole_fillet_c, port_hole_fillet_d,
+    ]
+
+    # 1. Faceplate (no flip — we flip the whole assembly at the end).
+    # The port hole outline is passed through so the cap cutout always
+    # matches the tube's base cross-section.
     print("  Building faceplate...")
-    result = build_faceplate(flip_for_print=False)
+    result = build_faceplate(
+        port_hole_ax=port_hole_ax, port_hole_ay=port_hole_ay,
+        port_hole_bx=port_hole_bx, port_hole_by=port_hole_by,
+        port_hole_cx=port_hole_cx, port_hole_cy=port_hole_cy,
+        port_hole_dx=port_hole_dx, port_hole_dy=port_hole_dy,
+        port_hole_fillet_a=port_hole_fillet_a,
+        port_hole_fillet_b=port_hole_fillet_b,
+        port_hole_fillet_c=port_hole_fillet_c,
+        port_hole_fillet_d=port_hole_fillet_d,
+        flip_for_print=False,
+    )
 
     # 2. Angled transition (quad → circle, straight path)
     print("  Building angled transition...")
     transition, exit_point, exit_dir = build_angled_transition(
-        port_hole_verts=PORT_HOLE_VERTS,
-        port_hole_fillet=PORT_HOLE_FILLET,
+        port_hole_verts=port_hole_verts,
+        port_hole_fillets=port_hole_fillets,
         hose_od=hose_od,
         hose_tolerance=hose_tolerance,
         tube_wall=tube_wall,
+        tube_wall_base=tube_wall_base,
         tube_length=tube_length,
         exit_angle_deg=exit_angle_deg,
         path_angle_deg=path_angle_deg,
         exit_direction_deg=exit_direction_deg,
+        tilt_ease_exp=tilt_ease_exp,
+        morph_ease_exp=morph_ease_exp,
         num_stations=num_stations,
         num_points=num_points,
         z_base=z_cap_top - 1.0,  # overlap into cap for reliable boolean union
@@ -579,12 +628,26 @@ PARAMS = {
     "hose_od": (HOSE_OD, "Hose outer diameter (mm)."),
     "hose_tolerance": HOSE_TOLERANCE,
     "socket_depth": SOCKET_DEPTH,
-    "tube_wall": TUBE_WALL,
+    "tube_wall": (TUBE_WALL, "Tube wall thickness at the hose exit (mm)."),
+    "tube_wall_base": (TUBE_WALL_BASE,
+                       "Tube wall thickness at the faceplate end (mm); tapers to tube_wall at the exit."),
     "tube_length": (TUBE_LENGTH, "Transition tube length along path (mm)."),
     "exit_angle_deg": (EXIT_ANGLE_DEG, "Angle of the tube exit from vertical (degrees)."),
     "path_angle_deg": (PATH_ANGLE_DEG, "Angle of travel from vertical (degrees)."),
     "exit_direction_deg": (EXIT_DIRECTION_DEG,
                            "Horizontal direction (degrees). 0=toward A-D, positive=toward A-B."),
+    "tilt_ease_exp": (TILT_EASE_EXP,
+                      "Tilt easing exponent (t**p). 1=linear; >1 delays tilt until the profile has shrunk."),
+    "morph_ease_exp": (MORPH_EASE_EXP,
+                       "Quad->circle morph easing exponent (1-(1-t)**q). 1=linear; >1 shrinks the quad early."),
+    "port_hole_ax": PORT_HOLE_VERTS[0][0], "port_hole_ay": PORT_HOLE_VERTS[0][1],
+    "port_hole_bx": PORT_HOLE_VERTS[1][0], "port_hole_by": PORT_HOLE_VERTS[1][1],
+    "port_hole_cx": PORT_HOLE_VERTS[2][0], "port_hole_cy": PORT_HOLE_VERTS[2][1],
+    "port_hole_dx": PORT_HOLE_VERTS[3][0], "port_hole_dy": PORT_HOLE_VERTS[3][1],
+    "port_hole_fillet_a": (PORT_HOLE_FILLETS[0], "Fillet radius at port hole corner A (acute)."),
+    "port_hole_fillet_b": (PORT_HOLE_FILLETS[1], "Fillet radius at port hole corner B."),
+    "port_hole_fillet_c": (PORT_HOLE_FILLETS[2], "Fillet radius at port hole corner C."),
+    "port_hole_fillet_d": (PORT_HOLE_FILLETS[3], "Fillet radius at port hole corner D."),
     "num_stations": (NUM_LOFT_STATIONS, "Number of intermediate cross-sections.", int),
     "num_points": (NUM_PROFILE_POINTS, "Points sampled around each cross-section.", int),
 }

@@ -160,39 +160,39 @@
     "volume": 2366.182911154977
   },
   "projects/dust_port_adapter/adapter.py::full#dust_port_adapter_full.stl": {
-    "area": 34026.1109693981,
+    "area": 30977.72558685414,
     "bbox_max": [
       78.30628967285156,
       62.0,
-      88.75225830078125
+      68.93701934814453
     ],
     "bbox_min": [
-      -40.27260971069336,
-      -31.789873123168945,
+      -52.23292541503906,
+      -41.84423065185547,
       0.0
     ],
-    "sha256": "074162bcb7e00ffd9124bd7190a2b40f7e2a3c7adf5b28073be4708238e7ac8d",
-    "triangles": 5472,
-    "volume": 46906.02970430941
+    "sha256": "8c68756e05f0413852a228cb519c2241c1ec6067a87c8b593860a3c6cff4f58b",
+    "triangles": 6382,
+    "volume": 47728.7303795667
   },
   "projects/dust_port_adapter/adapter.py::transition_test#dust_port_adapter_transition_test.stl": {
-    "area": 29143.790340547945,
+    "area": 26099.390610568782,
     "bbox_max": [
       78.30628967285156,
       62.0,
-      85.24317169189453
+      65.4024658203125
     ],
     "bbox_min": [
-      -25.16267967224121,
-      -19.128299713134766,
+      -37.0906867980957,
+      -29.151988983154297,
       0.0
     ],
-    "sha256": "21655d2c5e8b36c90b6424fb05ef6cf906dfe207fec8ab8e6555fdfe72eac0f7",
-    "triangles": 3874,
-    "volume": 39667.639106464274
+    "sha256": "17ffbe7fa4e3eb441ffb81b9d495ecf6087e10335150bf9489363b921dcad910",
+    "triangles": 4410,
+    "volume": 40403.669036779334
   },
   "projects/dust_port_adapter/faceplate.py::faceplate#dust_port_adapter_faceplate.stl": {
-    "area": 7587.69825500631,
+    "area": 7359.044536207163,
     "bbox_max": [
       78.30628967285156,
       -1.9896864891052246,
@@ -203,9 +203,9 @@
       -62.0,
       0.0
     ],
-    "sha256": "368063263ca641c033240202f231b532375fcdced6ce56c16ccee8c61ff48420",
-    "triangles": 2148,
-    "volume": 9396.0225231625
+    "sha256": "22a1f200bc92f954ec4fbce878d71ce5c69f9470bc45ee3134a9501f8e44d3a3",
+    "triangles": 2144,
+    "volume": 9171.348601088115
   },
   "projects/dust_port_adapter/profile_test.py::profile#dust_port_adapter_profile.stl": {
     "area": 2658.5026548480073,

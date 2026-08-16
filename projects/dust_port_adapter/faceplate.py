@@ -78,7 +78,10 @@ PORT_HOLE_AX, PORT_HOLE_AY = _ph["A"]
 PORT_HOLE_BX, PORT_HOLE_BY = _ph["B"]
 PORT_HOLE_CX, PORT_HOLE_CY = _ph["C"]
 PORT_HOLE_DX, PORT_HOLE_DY = _ph["D"]
-PORT_HOLE_FILLET = _ph["fillet_radius"]
+PORT_HOLE_FILLET_A = _ph["fillets"]["A"]
+PORT_HOLE_FILLET_B = _ph["fillets"]["B"]
+PORT_HOLE_FILLET_C = _ph["fillets"]["C"]
+PORT_HOLE_FILLET_D = _ph["fillets"]["D"]
 
 
 # ---------------------------------------------------------------------------
@@ -105,7 +108,10 @@ def build_faceplate(
     port_hole_bx: float = PORT_HOLE_BX, port_hole_by: float = PORT_HOLE_BY,
     port_hole_cx: float = PORT_HOLE_CX, port_hole_cy: float = PORT_HOLE_CY,
     port_hole_dx: float = PORT_HOLE_DX, port_hole_dy: float = PORT_HOLE_DY,
-    port_hole_fillet: float = PORT_HOLE_FILLET,
+    port_hole_fillet_a: float = PORT_HOLE_FILLET_A,
+    port_hole_fillet_b: float = PORT_HOLE_FILLET_B,
+    port_hole_fillet_c: float = PORT_HOLE_FILLET_C,
+    port_hole_fillet_d: float = PORT_HOLE_FILLET_D,
     flip_for_print: bool = True,
 ) -> cq.Workplane:
     """
@@ -150,7 +156,10 @@ def build_faceplate(
         (port_hole_cx, port_hole_cy),
         (port_hole_dx, port_hole_dy),
     ]
-    port_hole_fillets = [port_hole_fillet] * 4
+    port_hole_fillets = [
+        port_hole_fillet_a, port_hole_fillet_b,
+        port_hole_fillet_c, port_hole_fillet_d,
+    ]
     # Build the quad solid starting just below the cap and punching through
     port_hole_solid = _build_quad_solid(
         port_hole_verts, port_hole_fillets,
@@ -206,7 +215,10 @@ PARAMS = {
     "port_hole_bx": PORT_HOLE_BX, "port_hole_by": PORT_HOLE_BY,
     "port_hole_cx": PORT_HOLE_CX, "port_hole_cy": PORT_HOLE_CY,
     "port_hole_dx": PORT_HOLE_DX, "port_hole_dy": PORT_HOLE_DY,
-    "port_hole_fillet": (PORT_HOLE_FILLET, "Fillet radius for port hole corners."),
+    "port_hole_fillet_a": (PORT_HOLE_FILLET_A, "Fillet radius at port hole corner A (acute)."),
+    "port_hole_fillet_b": (PORT_HOLE_FILLET_B, "Fillet radius at port hole corner B."),
+    "port_hole_fillet_c": (PORT_HOLE_FILLET_C, "Fillet radius at port hole corner C."),
+    "port_hole_fillet_d": (PORT_HOLE_FILLET_D, "Fillet radius at port hole corner D."),
 }
 
 

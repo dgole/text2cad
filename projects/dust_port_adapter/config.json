@@ -33,11 +33,18 @@
         "screw_diameter": 11.0,
         "port_hole": {
             "_comment": "Cutout through the cap for dust to pass. Vertices define its outline on the cap face.",
-            "A": [5.0, 15.0],
+            "_A": "Construction vertex, deliberately outside the rim: pushed 12mm out along the old acute corner's bisector from the measured [5, 15] so the corner fillet lands as a rounded lobe that fills the lower corner (teardrop, like the saw's real opening). Only the tangent arc is part of the outline; verified >= 3mm inside the rim.",
+            "A": [-4.16, 7.24],
             "B": [65.0, 40.0],
             "C": [65.0, 55.0],
             "D": [30.0, 55.0],
-            "fillet_radius": 2.0
+            "_fillets": "Per-corner fillet radii. A's big radius + pushed-out vertex form the corner lobe; B and C share the short 15mm B-C edge, capping them around 7.",
+            "fillets": {
+                "A": 6.0,
+                "B": 5.0,
+                "C": 5.0,
+                "D": 8.0
+            }
         }
     },
 
@@ -48,18 +55,24 @@
         "hose_tolerance": 0.5,
         "_socket_depth": "Depth of the female socket (how far the hose inserts).",
         "socket_depth": 20.0,
-        "_tube_wall": "Wall thickness of the transition tube.",
+        "_tube_wall": "Wall thickness of the transition tube at the hose exit.",
         "tube_wall": 3.0,
+        "_tube_wall_base": "Wall thickness at the faceplate end; tapers linearly to tube_wall at the exit. Thicker here because the near-flat base cross-sections run oblique to the tube surface.",
+        "tube_wall_base": 5.0,
         "_tube_length": "Length of the transition tube along its centerline path (mm).",
         "tube_length": 90.0,
         "_exit_angle_deg": "Angle of the tube exit face from vertical (degrees). 80 = nearly horizontal.",
         "exit_angle_deg": 80.0,
         "_path_angle_deg": "Angle of the straight travel path from vertical. Negative means it leans backwards.",
-        "path_angle_deg": 50.0,
+        "path_angle_deg": 65.0,
         "_exit_direction_deg": "Horizontal direction the tube points (degrees). 0 = toward A-D edge. Positive rotates toward A-B edge.",
         "exit_direction_deg": 40.0,
+        "_tilt_ease_exp": "Tilt easing exponent (t**p). 1 = linear tilt; >1 delays the tilt until the profile has shrunk, reducing the underside bulge.",
+        "tilt_ease_exp": 2.0,
+        "_morph_ease_exp": "Quad-to-circle morph easing exponent (1-(1-t)**q). 1 = linear morph; >1 shrinks the quad toward the circle early.",
+        "morph_ease_exp": 2.0,
         "_num_loft_stations": "Number of intermediate cross-sections along the tube.",
-        "num_loft_stations": 16,
+        "num_loft_stations": 32,
         "_num_profile_points": "Points sampled around each cross-section for quad-to-circle morph.",
         "num_profile_points": 32
     }
